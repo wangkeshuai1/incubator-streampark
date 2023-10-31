@@ -17,9 +17,10 @@
 
 package org.apache.streampark.console.core.service.application.impl;
 
+import org.apache.streampark.common.Constant;
 import org.apache.streampark.common.conf.K8sFlinkConfig;
 import org.apache.streampark.common.conf.Workspace;
-import org.apache.streampark.common.enums.ExecutionMode;
+import org.apache.streampark.common.enums.FlinkExecutionMode;
 import org.apache.streampark.common.fs.LfsOperator;
 import org.apache.streampark.common.util.ExceptionUtils;
 import org.apache.streampark.common.util.Utils;
@@ -32,8 +33,8 @@ import org.apache.streampark.console.core.entity.Application;
 import org.apache.streampark.console.core.entity.FlinkCluster;
 import org.apache.streampark.console.core.entity.FlinkEnv;
 import org.apache.streampark.console.core.entity.Project;
-import org.apache.streampark.console.core.enums.AppExistsState;
-import org.apache.streampark.console.core.enums.FlinkAppState;
+import org.apache.streampark.console.core.enums.AppExistsStateEnum;
+import org.apache.streampark.console.core.enums.FlinkAppStateEnum;
 import org.apache.streampark.console.core.mapper.ApplicationMapper;
 import org.apache.streampark.console.core.metrics.flink.JobsOverview;
 import org.apache.streampark.console.core.runner.EnvInitializer;
@@ -41,9 +42,9 @@ import org.apache.streampark.console.core.service.FlinkClusterService;
 import org.apache.streampark.console.core.service.FlinkEnvService;
 import org.apache.streampark.console.core.service.SavePointService;
 import org.apache.streampark.console.core.service.application.ApplicationInfoService;
-import org.apache.streampark.console.core.task.FlinkAppHttpWatcher;
-import org.apache.streampark.console.core.task.FlinkClusterWatcher;
-import org.apache.streampark.console.core.task.FlinkK8sObserverStub;
+import org.apache.streampark.console.core.watcher.FlinkAppHttpWatcher;
+import org.apache.streampark.console.core.watcher.FlinkClusterWatcher;
+import org.apache.streampark.console.core.watcher.FlinkK8sObserverStub;
 import org.apache.streampark.flink.core.conf.ParameterCli;
 import org.apache.streampark.flink.kubernetes.FlinkK8sWatcher;
 import org.apache.streampark.flink.kubernetes.helper.KubernetesDeploymentHelper;
@@ -74,8 +75,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.apache.streampark.common.enums.StorageType.LFS;
-import static org.apache.streampark.console.core.task.FlinkK8sWatcherWrapper.Bridge.toTrackId;
-import static org.apache.streampark.console.core.task.FlinkK8sWatcherWrapper.isKubernetesApp;
+import static org.apache.streampark.console.core.watcher.FlinkK8sWatcherWrapper.Bridge.toTrackId;
 
 @Slf4j
 @Service
@@ -135,7 +135,7 @@ public class ApplicationInfoServiceImpl extends ServiceImpl<ApplicationMapper, A
       if (app.getAvailableSlot() != null) {
         availableSlot += app.getAvailableSlot();
       }
-      if (app.getState() == FlinkAppState.RUNNING.getValue()) {
+      if (app.getState() == FlinkAppStateEnum.RUNNING.getValue()) {
         runningJob++;
       }
       JobsOverview.Task task = app.getOverview();
@@ -203,8 +203,8 @@ public class ApplicationInfoServiceImpl extends ServiceImpl<ApplicationMapper, A
       envInitializer.checkFlinkEnv(application.getStorageType(), flinkEnv);
       envInitializer.storageInitialize(application.getStorageType());
 
-      if (ExecutionMode.YARN_SESSION == application.getExecutionModeEnum()
-          || ExecutionMode.REMOTE == application.getExecutionModeEnum()) {
+      if (FlinkExecutionMode.YARN_SESSION == application.getFlinkExecutionMode()
+          || FlinkExecutionMode.REMOTE == application.getFlinkExecutionMode()) {
         FlinkCluster flinkCluster = flinkClusterService.getById(application.getFlinkClusterId());
         boolean conned = flinkClusterWatcher.verifyClusterConnection(flinkCluster);
         if (!conned) {
@@ -221,7 +221,7 @@ public class ApplicationInfoServiceImpl extends ServiceImpl<ApplicationMapper, A
   @Override
   public boolean checkAlter(Application appParam) {
     Long appId = appParam.getId();
-    if (FlinkAppState.CANCELED != appParam.getStateEnum()) {
+    if (FlinkAppStateEnum.CANCELED != appParam.getStateEnum()) {
       return false;
     }
     long cancelUserId = FlinkAppHttpWatcher.getCanceledJobUserId(appId);
@@ -248,7 +248,7 @@ public class ApplicationInfoServiceImpl extends ServiceImpl<ApplicationMapper, A
             .anyMatch(
                 application ->
                     clusterId.equals(application.getFlinkClusterId())
-                        && FlinkAppState.RUNNING == application.getStateEnum());
+                        && FlinkAppStateEnum.RUNNING == application.getStateEnum());
   }
 
   @Override
@@ -278,32 +278,32 @@ public class ApplicationInfoServiceImpl extends ServiceImpl<ApplicationMapper, A
 
   @Override
   public List<String> getRecentK8sNamespace() {
-    return baseMapper.getRecentK8sNamespace(DEFAULT_HISTORY_RECORD_LIMIT);
+    return baseMapper.selectRecentK8sNamespaces(DEFAULT_HISTORY_RECORD_LIMIT);
   }
 
   @Override
   public List<String> getRecentK8sClusterId(Integer executionMode) {
-    return baseMapper.getRecentK8sClusterId(executionMode, DEFAULT_HISTORY_RECORD_LIMIT);
+    return baseMapper.selectRecentK8sClusterIds(executionMode, DEFAULT_HISTORY_RECORD_LIMIT);
   }
 
   @Override
   public List<String> getRecentFlinkBaseImage() {
-    return baseMapper.getRecentFlinkBaseImage(DEFAULT_HISTORY_RECORD_LIMIT);
+    return baseMapper.selectRecentFlinkBaseImages(DEFAULT_HISTORY_RECORD_LIMIT);
   }
 
   @Override
   public List<String> getRecentK8sPodTemplate() {
-    return baseMapper.getRecentK8sPodTemplate(DEFAULT_HISTORY_POD_TMPL_RECORD_LIMIT);
+    return baseMapper.selectRecentK8sPodTemplates(DEFAULT_HISTORY_POD_TMPL_RECORD_LIMIT);
   }
 
   @Override
   public List<String> getRecentK8sJmPodTemplate() {
-    return baseMapper.getRecentK8sJmPodTemplate(DEFAULT_HISTORY_POD_TMPL_RECORD_LIMIT);
+    return baseMapper.selectRecentK8sJmPodTemplates(DEFAULT_HISTORY_POD_TMPL_RECORD_LIMIT);
   }
 
   @Override
   public List<String> getRecentK8sTmPodTemplate() {
-    return baseMapper.getRecentK8sTmPodTemplate(DEFAULT_HISTORY_POD_TMPL_RECORD_LIMIT);
+    return baseMapper.selectRecentK8sTmPodTemplates(DEFAULT_HISTORY_POD_TMPL_RECORD_LIMIT);
   }
 
   @Override
@@ -312,7 +312,7 @@ public class ApplicationInfoServiceImpl extends ServiceImpl<ApplicationMapper, A
         .filter(File::isFile)
         .sorted(Comparator.comparingLong(File::lastModified).reversed())
         .map(File::getName)
-        .filter(fn -> fn.endsWith(".jar"))
+        .filter(fn -> fn.endsWith(Constant.JAR_SUFFIX))
         .limit(DEFAULT_HISTORY_RECORD_LIMIT)
         .collect(Collectors.toList());
   }
@@ -322,44 +322,43 @@ public class ApplicationInfoServiceImpl extends ServiceImpl<ApplicationMapper, A
     Application application = getById(id);
     ApiAlertException.throwIfNull(
         application, String.format("The application id=%s can't be found.", id));
-    if (ExecutionMode.isKubernetesMode(application.getExecutionModeEnum())) {
-      CompletableFuture<String> future =
-          CompletableFuture.supplyAsync(
-              () ->
-                  KubernetesDeploymentHelper.watchDeploymentLog(
-                      application.getK8sNamespace(),
-                      application.getJobName(),
-                      application.getJobId()));
+    ApiAlertException.throwIfFalse(
+        FlinkExecutionMode.isKubernetesMode(application.getFlinkExecutionMode()),
+        "Job executionMode must be kubernetes-session|kubernetes-application.");
 
-      return future
-          .exceptionally(
-              e -> {
-                String errorLog =
-                    String.format(
-                        "%s/%s_err.log",
-                        WebUtils.getAppTempDir().getAbsolutePath(), application.getJobId());
-                File file = new File(errorLog);
-                if (file.exists() && file.isFile()) {
-                  return file.getAbsolutePath();
-                }
-                return null;
-              })
-          .thenApply(
-              path -> {
-                if (!future.isDone()) {
-                  future.cancel(true);
-                }
-                if (org.apache.streampark.common.util.FileUtils.exists(path)) {
-                  return org.apache.streampark.common.util.FileUtils.tailOf(path, offset, limit);
-                }
-                return null;
-              })
-          .toCompletableFuture()
-          .get(5, TimeUnit.SECONDS);
-    } else {
-      throw new ApiAlertException(
-          "Job executionMode must be kubernetes-session|kubernetes-application.");
-    }
+    CompletableFuture<String> future =
+        CompletableFuture.supplyAsync(
+            () ->
+                KubernetesDeploymentHelper.watchDeploymentLog(
+                    application.getK8sNamespace(),
+                    application.getJobName(),
+                    application.getJobId()));
+
+    return future
+        .exceptionally(
+            e -> {
+              String errorLog =
+                  String.format(
+                      "%s/%s_err.log",
+                      WebUtils.getAppTempDir().getAbsolutePath(), application.getJobId());
+              File file = new File(errorLog);
+              if (file.exists() && file.isFile()) {
+                return file.getAbsolutePath();
+              }
+              return null;
+            })
+        .thenApply(
+            path -> {
+              if (!future.isDone()) {
+                future.cancel(true);
+              }
+              if (org.apache.streampark.common.util.FileUtils.exists(path)) {
+                return org.apache.streampark.common.util.FileUtils.tailOf(path, offset, limit);
+              }
+              return null;
+            })
+        .toCompletableFuture()
+        .get(5, TimeUnit.SECONDS);
   }
 
   @Override
@@ -378,10 +377,10 @@ public class ApplicationInfoServiceImpl extends ServiceImpl<ApplicationMapper, A
    * @return The state of the application's existence.
    */
   @Override
-  public AppExistsState checkExists(Application appParam) {
+  public AppExistsStateEnum checkExists(Application appParam) {
 
     if (!checkJobName(appParam.getJobName())) {
-      return AppExistsState.INVALID;
+      return AppExistsStateEnum.INVALID;
     }
 
     boolean existsByJobName = this.existsByJobName(appParam.getJobName());
@@ -389,43 +388,43 @@ public class ApplicationInfoServiceImpl extends ServiceImpl<ApplicationMapper, A
     if (appParam.getId() != null) {
       Application app = getById(appParam.getId());
       if (app.getJobName().equals(appParam.getJobName())) {
-        return AppExistsState.NO;
+        return AppExistsStateEnum.NO;
       }
 
       if (existsByJobName) {
-        return AppExistsState.IN_DB;
+        return AppExistsStateEnum.IN_DB;
       }
 
       // has stopped status
-      if (FlinkAppState.isEndState(app.getState())) {
+      if (FlinkAppStateEnum.isEndState(app.getState())) {
         // check whether jobName exists on yarn
-        if (ExecutionMode.isYarnMode(appParam.getExecutionMode())
+        if (FlinkExecutionMode.isYarnMode(appParam.getExecutionMode())
             && YarnUtils.isContains(appParam.getJobName())) {
-          return AppExistsState.IN_YARN;
+          return AppExistsStateEnum.IN_YARN;
         }
         // check whether clusterId, namespace, jobId on kubernetes
-        else if (ExecutionMode.isKubernetesMode(appParam.getExecutionMode())
+        else if (FlinkExecutionMode.isKubernetesMode(appParam.getExecutionMode())
             && k8SFlinkTrackMonitor.checkIsInRemoteCluster(toTrackId(appParam))) {
-          return AppExistsState.IN_KUBERNETES;
+          return AppExistsStateEnum.IN_KUBERNETES;
         }
       }
     } else {
       if (existsByJobName) {
-        return AppExistsState.IN_DB;
+        return AppExistsStateEnum.IN_DB;
       }
 
       // check whether jobName exists on yarn
-      if (ExecutionMode.isYarnMode(appParam.getExecutionMode())
+      if (FlinkExecutionMode.isYarnMode(appParam.getExecutionMode())
           && YarnUtils.isContains(appParam.getJobName())) {
-        return AppExistsState.IN_YARN;
+        return AppExistsStateEnum.IN_YARN;
       }
       // check whether clusterId, namespace, jobId on kubernetes
-      else if (ExecutionMode.isKubernetesMode(appParam.getExecutionMode())
+      else if (FlinkExecutionMode.isKubernetesMode(appParam.getExecutionMode())
           && k8SFlinkTrackMonitor.checkIsInRemoteCluster(toTrackId(appParam))) {
-        return AppExistsState.IN_KUBERNETES;
+        return AppExistsStateEnum.IN_KUBERNETES;
       }
     }
-    return AppExistsState.NO;
+    return AppExistsStateEnum.NO;
   }
 
   private boolean existsByJobName(String jobName) {
@@ -454,22 +453,6 @@ public class ApplicationInfoServiceImpl extends ServiceImpl<ApplicationMapper, A
     }
     Manifest manifest = Utils.getJarManifest(jarFile);
     return manifest.getMainAttributes().getValue("Main-Class");
-  }
-
-  @Override
-  public boolean mapping(Application appParam) {
-    boolean mapping = this.baseMapper.mapping(appParam);
-    Application application = getById(appParam.getId());
-    if (isKubernetesApp(application)) {
-      // todo mark
-      k8SFlinkTrackMonitor.doWatching(toTrackId(application));
-      if (K8sFlinkConfig.isV2Enabled()) {
-        flinkK8sObserver.watchApplication(application);
-      }
-    } else {
-      FlinkAppHttpWatcher.doWatching(application);
-    }
-    return mapping;
   }
 
   @Override
@@ -504,11 +487,6 @@ public class ApplicationInfoServiceImpl extends ServiceImpl<ApplicationMapper, A
     } else {
       return "When custom savepoint is not set, state.savepoints.dir needs to be set in properties or flink-conf.yaml of application";
     }
-  }
-
-  @Override
-  public void persistMetrics(Application appParam) {
-    this.baseMapper.persistMetrics(appParam);
   }
 
   private Boolean checkJobName(String jobName) {

@@ -18,13 +18,13 @@
 package org.apache.streampark.console.core.bean;
 
 import org.apache.streampark.common.enums.ClusterState;
-import org.apache.streampark.common.enums.ExecutionMode;
+import org.apache.streampark.common.enums.FlinkExecutionMode;
 import org.apache.streampark.common.util.DateUtils;
 import org.apache.streampark.common.util.YarnUtils;
 import org.apache.streampark.console.core.entity.Application;
 import org.apache.streampark.console.core.entity.FlinkCluster;
-import org.apache.streampark.console.core.enums.CheckPointStatus;
-import org.apache.streampark.console.core.enums.FlinkAppState;
+import org.apache.streampark.console.core.enums.CheckPointStatusEnum;
+import org.apache.streampark.console.core.enums.FlinkAppStateEnum;
 
 import lombok.Data;
 
@@ -57,36 +57,47 @@ public class AlertTemplate implements Serializable {
   private Integer lostJobs;
   private Integer cancelledJobs;
 
-  public static AlertTemplate of(Application application, FlinkAppState appState) {
+  private static final String ALERT_SUBJECT_PREFIX = "StreamPark Alert:";
+
+  private static final String ALERT_TITLE_PREFIX = "Notify:";
+
+  private static final String PROBE = "PROBE";
+
+  public static AlertTemplate of(Application application, FlinkAppStateEnum appState) {
     return new AlertTemplateBuilder()
         .setDuration(application.getStartTime(), application.getEndTime())
         .setJobName(application.getJobName())
-        .setLink(application.getExecutionModeEnum(), application.getAppId())
+        .setLink(application.getFlinkExecutionMode(), application.getAppId())
         .setStartTime(application.getStartTime())
         .setEndTime(application.getEndTime())
         .setRestart(application.isNeedRestartOnFailed(), application.getRestartCount())
         .setRestartIndex(application.getRestartCount())
         .setTotalRestart(application.getRestartSize())
         .setType(1)
-        .setTitle(String.format("Notify: %s %s", application.getJobName(), appState.name()))
-        .setSubject(String.format("StreamPark Alert: %s %s", application.getJobName(), appState))
+        .setTitle(
+            String.format(
+                "%s %s %s", ALERT_TITLE_PREFIX, application.getJobName(), appState.name()))
+        .setSubject(
+            String.format("%s %s %s", ALERT_SUBJECT_PREFIX, application.getJobName(), appState))
         .setStatus(appState.name())
         .build();
   }
 
-  public static AlertTemplate of(Application application, CheckPointStatus checkPointStatus) {
+  public static AlertTemplate of(Application application, CheckPointStatusEnum statusEnum) {
     return new AlertTemplateBuilder()
         .setDuration(application.getStartTime(), application.getEndTime())
         .setJobName(application.getJobName())
-        .setLink(application.getExecutionModeEnum(), application.getAppId())
+        .setLink(application.getFlinkExecutionMode(), application.getAppId())
         .setStartTime(application.getStartTime())
         .setType(2)
         .setCpFailureRateInterval(
             DateUtils.toDuration(application.getCpFailureRateInterval() * 1000 * 60))
         .setCpMaxFailureInterval(application.getCpMaxFailureInterval())
-        .setTitle(String.format("Notify: %s checkpoint FAILED", application.getJobName()))
+        .setTitle(
+            String.format("%s %s checkpoint FAILED", ALERT_TITLE_PREFIX, application.getJobName()))
         .setSubject(
-            String.format("StreamPark Alert: %s, checkPoint is Failed", application.getJobName()))
+            String.format(
+                "%s %s, checkPoint is Failed", ALERT_SUBJECT_PREFIX, application.getJobName()))
         .build();
   }
 
@@ -94,13 +105,15 @@ public class AlertTemplate implements Serializable {
     return new AlertTemplateBuilder()
         .setDuration(cluster.getStartTime(), cluster.getEndTime())
         .setJobName(cluster.getClusterName())
-        .setLink(cluster.getExecutionModeEnum(), cluster.getClusterId())
+        .setLink(cluster.getFlinkExecutionModeEnum(), cluster.getClusterId())
         .setStartTime(cluster.getStartTime())
         .setEndTime(cluster.getEndTime())
         .setType(3)
-        .setTitle(String.format("Notify: %s %s", cluster.getClusterName(), clusterState.name()))
+        .setTitle(
+            String.format(
+                "%s %s %s", ALERT_TITLE_PREFIX, cluster.getClusterName(), clusterState.name()))
         .setSubject(
-            String.format("StreamPark Alert: %s %s", cluster.getClusterName(), clusterState))
+            String.format("%s %s %s", ALERT_SUBJECT_PREFIX, cluster.getClusterName(), clusterState))
         .setStatus(clusterState.name())
         .setAllJobs(cluster.getAllJobs())
         .setAffectedJobs(cluster.getAffectedJobs())
@@ -115,8 +128,8 @@ public class AlertTemplate implements Serializable {
         .setFailedJobs(alertProbeMsg.getFailedJobs())
         .setLostJobs(alertProbeMsg.getLostJobs())
         .setCancelledJobs(alertProbeMsg.getCancelledJobs())
-        .setSubject("StreamPark Alert: PROBE")
-        .setTitle("PROBE")
+        .setSubject(String.format("%s %s", ALERT_SUBJECT_PREFIX, PROBE))
+        .setTitle(PROBE)
         .build();
   }
 
@@ -186,8 +199,8 @@ public class AlertTemplate implements Serializable {
       return this;
     }
 
-    public AlertTemplateBuilder setLink(ExecutionMode mode, String appId) {
-      if (ExecutionMode.isYarnMode(mode)) {
+    public AlertTemplateBuilder setLink(FlinkExecutionMode mode, String appId) {
+      if (FlinkExecutionMode.isYarnMode(mode)) {
         String format = "%s/proxy/%s/";
         String url = String.format(format, YarnUtils.getRMWebAppURL(false), appId);
         alertTemplate.setLink(url);

@@ -17,26 +17,27 @@
 
 package org.apache.streampark.console.core.entity;
 
-import org.apache.streampark.common.conf.ConfigConst;
-import org.apache.streampark.common.conf.K8sFlinkConfig;
+import org.apache.streampark.common.Constant;
+import org.apache.streampark.common.conf.ConfigKeys;
 import org.apache.streampark.common.conf.Workspace;
 import org.apache.streampark.common.enums.ApplicationType;
-import org.apache.streampark.common.enums.DevelopmentMode;
-import org.apache.streampark.common.enums.ExecutionMode;
+import org.apache.streampark.common.enums.FlinkDevelopmentMode;
+import org.apache.streampark.common.enums.FlinkExecutionMode;
 import org.apache.streampark.common.enums.FlinkK8sRestExposedType;
 import org.apache.streampark.common.enums.StorageType;
 import org.apache.streampark.common.fs.FsOperator;
 import org.apache.streampark.console.base.util.JacksonUtils;
 import org.apache.streampark.console.core.bean.AppControl;
 import org.apache.streampark.console.core.bean.Dependency;
-import org.apache.streampark.console.core.enums.FlinkAppState;
-import org.apache.streampark.console.core.enums.ReleaseState;
-import org.apache.streampark.console.core.enums.ResourceFrom;
+import org.apache.streampark.console.core.enums.FlinkAppStateEnum;
+import org.apache.streampark.console.core.enums.ReleaseStateEnum;
+import org.apache.streampark.console.core.enums.ResourceFromEnum;
 import org.apache.streampark.console.core.metrics.flink.JobsOverview;
 import org.apache.streampark.console.core.utils.YarnQueueLabelExpression;
 import org.apache.streampark.flink.kubernetes.model.K8sPodTemplates;
 import org.apache.streampark.flink.packer.maven.DependencyInfo;
 
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import com.baomidou.mybatisplus.annotation.FieldStrategy;
@@ -44,8 +45,10 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
+import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -100,7 +103,7 @@ public class Application implements Serializable {
   private String k8sName;
 
   /** k8s namespace */
-  private String k8sNamespace = K8sFlinkConfig.DEFAULT_KUBERNETES_NAMESPACE();
+  private String k8sNamespace = Constant.DEFAULT;
 
   /** The exposed type of the rest service of K8s(kubernetes.rest-service.exposed.type) */
   private Integer k8sRestExposedType;
@@ -110,7 +113,7 @@ public class Application implements Serializable {
   private String k8sJmPodTemplate;
   private String k8sTmPodTemplate;
 
-  private String ingressTemplate;
+  @Getter private String ingressTemplate;
   private String defaultModeIngress;
 
   /** flink-hadoop integration on flink-k8s mode */
@@ -250,19 +253,12 @@ public class Application implements Serializable {
 
   private transient AppControl appControl;
 
-  public String getIngressTemplate() {
-    return ingressTemplate;
-  }
-
   public void setDefaultModeIngress(String defaultModeIngress) {
     this.defaultModeIngress = defaultModeIngress;
   }
 
   public void setK8sNamespace(String k8sNamespace) {
-    this.k8sNamespace =
-        StringUtils.isBlank(k8sNamespace)
-            ? K8sFlinkConfig.DEFAULT_KUBERNETES_NAMESPACE()
-            : k8sNamespace;
+    this.k8sNamespace = StringUtils.isBlank(k8sNamespace) ? Constant.DEFAULT : k8sNamespace;
   }
 
   public K8sPodTemplates getK8sPodTemplates() {
@@ -275,16 +271,17 @@ public class Application implements Serializable {
   }
 
   public void setYarnQueueByHotParams() {
-    if (!(ExecutionMode.YARN_APPLICATION == this.getExecutionModeEnum()
-        || ExecutionMode.YARN_PER_JOB == this.getExecutionModeEnum())) {
+    if (!(FlinkExecutionMode.YARN_APPLICATION == this.getFlinkExecutionMode()
+        || FlinkExecutionMode.YARN_PER_JOB == this.getFlinkExecutionMode())) {
       return;
     }
 
     Map<String, Object> hotParamsMap = this.getHotParamsMap();
-    if (!hotParamsMap.isEmpty() && hotParamsMap.containsKey(ConfigConst.KEY_YARN_APP_QUEUE())) {
-      String yarnQueue = hotParamsMap.get(ConfigConst.KEY_YARN_APP_QUEUE()).toString();
+    if (MapUtils.isNotEmpty(hotParamsMap)
+        && hotParamsMap.containsKey(ConfigKeys.KEY_YARN_APP_QUEUE())) {
+      String yarnQueue = hotParamsMap.get(ConfigKeys.KEY_YARN_APP_QUEUE()).toString();
       String labelExpr =
-          Optional.ofNullable(hotParamsMap.get(ConfigConst.KEY_YARN_APP_NODE_LABEL()))
+          Optional.ofNullable(hotParamsMap.get(ConfigKeys.KEY_YARN_APP_NODE_LABEL()))
               .map(Object::toString)
               .orElse(null);
       this.setYarnQueue(YarnQueueLabelExpression.of(yarnQueue, labelExpr).toString());
@@ -335,18 +332,18 @@ public class Application implements Serializable {
   }
 
   @JsonIgnore
-  public ReleaseState getReleaseState() {
-    return ReleaseState.of(release);
+  public ReleaseStateEnum getReleaseState() {
+    return ReleaseStateEnum.of(release);
   }
 
   @JsonIgnore
-  public DevelopmentMode getDevelopmentMode() {
-    return DevelopmentMode.of(jobType);
+  public FlinkDevelopmentMode getDevelopmentMode() {
+    return FlinkDevelopmentMode.of(jobType);
   }
 
   @JsonIgnore
-  public FlinkAppState getStateEnum() {
-    return FlinkAppState.of(state);
+  public FlinkAppStateEnum getStateEnum() {
+    return FlinkAppStateEnum.of(state);
   }
 
   @JsonIgnore
@@ -355,8 +352,8 @@ public class Application implements Serializable {
   }
 
   @JsonIgnore
-  public ExecutionMode getExecutionModeEnum() {
-    return ExecutionMode.of(executionMode);
+  public FlinkExecutionMode getFlinkExecutionMode() {
+    return FlinkExecutionMode.of(executionMode);
   }
 
   public boolean cpFailedTrigger() {
@@ -397,10 +394,10 @@ public class Application implements Serializable {
     return path;
   }
 
-  /** Automatically identify remoteAppHome or localAppHome based on app ExecutionModeEnum */
+  /** Automatically identify remoteAppHome or localAppHome based on app FlinkExecutionMode */
   @JsonIgnore
   public String getAppHome() {
-    switch (this.getExecutionModeEnum()) {
+    switch (this.getFlinkExecutionMode()) {
       case KUBERNETES_NATIVE_APPLICATION:
       case KUBERNETES_NATIVE_SESSION:
       case YARN_PER_JOB:
@@ -412,7 +409,7 @@ public class Application implements Serializable {
         return getRemoteAppHome();
       default:
         throw new UnsupportedOperationException(
-            "unsupported executionMode ".concat(getExecutionModeEnum().getName()));
+            "unsupported executionMode ".concat(getFlinkExecutionMode().getName()));
     }
   }
 
@@ -440,36 +437,36 @@ public class Application implements Serializable {
 
   @JsonIgnore
   public boolean isFlinkSqlJob() {
-    return DevelopmentMode.FLINK_SQL.getValue().equals(this.getJobType());
+    return FlinkDevelopmentMode.FLINK_SQL.getMode().equals(this.getJobType());
   }
 
   @JsonIgnore
   public boolean isFlinkSqlJobOrPyFlinkJob() {
-    return DevelopmentMode.FLINK_SQL.getValue().equals(this.getJobType())
-        || DevelopmentMode.PYFLINK.getValue().equals(this.getJobType());
+    return FlinkDevelopmentMode.FLINK_SQL.getMode().equals(this.getJobType())
+        || FlinkDevelopmentMode.PYFLINK.getMode().equals(this.getJobType());
   }
 
   @JsonIgnore
   public boolean isCustomCodeJob() {
-    return DevelopmentMode.CUSTOM_CODE.getValue().equals(this.getJobType());
+    return FlinkDevelopmentMode.CUSTOM_CODE.getMode().equals(this.getJobType());
   }
 
   @JsonIgnore
   public boolean isCustomCodeOrPyFlinkJob() {
-    return DevelopmentMode.CUSTOM_CODE.getValue().equals(this.getJobType())
-        || DevelopmentMode.PYFLINK.getValue().equals(this.getJobType());
+    return FlinkDevelopmentMode.CUSTOM_CODE.getMode().equals(this.getJobType())
+        || FlinkDevelopmentMode.PYFLINK.getMode().equals(this.getJobType());
   }
 
   @JsonIgnore
   public boolean isUploadJob() {
     return isCustomCodeOrPyFlinkJob()
-        && ResourceFrom.UPLOAD.getValue().equals(this.getResourceFrom());
+        && ResourceFromEnum.UPLOAD.getValue().equals(this.getResourceFrom());
   }
 
   @JsonIgnore
   public boolean isCICDJob() {
     return isCustomCodeOrPyFlinkJob()
-        && ResourceFrom.CICD.getValue().equals(this.getResourceFrom());
+        && ResourceFromEnum.CICD.getValue().equals(this.getResourceFrom());
   }
 
   public boolean isStreamParkJob() {
@@ -489,12 +486,12 @@ public class Application implements Serializable {
 
   @JsonIgnore
   public boolean isRunning() {
-    return FlinkAppState.RUNNING.getValue() == this.getState();
+    return FlinkAppStateEnum.RUNNING.getValue() == this.getState();
   }
 
   @JsonIgnore
   public boolean isNeedRollback() {
-    return ReleaseState.NEED_ROLLBACK.get() == this.getRelease();
+    return ReleaseStateEnum.NEED_ROLLBACK.get() == this.getRelease();
   }
 
   @JsonIgnore
@@ -511,8 +508,8 @@ public class Application implements Serializable {
   }
 
   public static StorageType getStorageType(Integer execMode) {
-    ExecutionMode executionMode = ExecutionMode.of(execMode);
-    switch (Objects.requireNonNull(executionMode)) {
+    FlinkExecutionMode executionModeEnum = FlinkExecutionMode.of(execMode);
+    switch (Objects.requireNonNull(executionModeEnum)) {
       case YARN_APPLICATION:
         return StorageType.HDFS;
       case YARN_PER_JOB:
@@ -522,7 +519,7 @@ public class Application implements Serializable {
       case REMOTE:
         return StorageType.LFS;
       default:
-        throw new UnsupportedOperationException("Unsupported ".concat(executionMode.getName()));
+        throw new UnsupportedOperationException("Unsupported ".concat(executionModeEnum.getName()));
     }
   }
 
@@ -540,7 +537,7 @@ public class Application implements Serializable {
   @SneakyThrows
   @SuppressWarnings("unchecked")
   public Map<String, Object> getHotParamsMap() {
-    if (this.hotParams != null) {
+    if (StringUtils.isNotBlank(this.hotParams)) {
       Map<String, Object> map = JacksonUtils.read(this.hotParams, Map.class);
       map.entrySet().removeIf(entry -> entry.getValue() == null);
       return map;
@@ -558,18 +555,18 @@ public class Application implements Serializable {
     if (appParam != this) {
       this.hotParams = null;
     }
-    ExecutionMode executionModeEnum = appParam.getExecutionModeEnum();
+    FlinkExecutionMode executionModeEnum = appParam.getFlinkExecutionMode();
     Map<String, String> hotParams = new HashMap<>(0);
     if (needFillYarnQueueLabel(executionModeEnum)) {
       hotParams.putAll(YarnQueueLabelExpression.getQueueLabelMap(appParam.getYarnQueue()));
     }
-    if (!hotParams.isEmpty()) {
+    if (MapUtils.isNotEmpty(hotParams)) {
       this.setHotParams(JacksonUtils.write(hotParams));
     }
   }
 
-  private boolean needFillYarnQueueLabel(ExecutionMode mode) {
-    return ExecutionMode.YARN_PER_JOB == mode || ExecutionMode.YARN_APPLICATION == mode;
+  private boolean needFillYarnQueueLabel(FlinkExecutionMode mode) {
+    return FlinkExecutionMode.YARN_PER_JOB == mode || FlinkExecutionMode.YARN_APPLICATION == mode;
   }
 
   @Override
@@ -586,5 +583,26 @@ public class Application implements Serializable {
   @Override
   public int hashCode() {
     return Objects.hash(id);
+  }
+
+  public static class SFunc {
+    public static final SFunction<Application, Long> ID = Application::getId;
+    public static final SFunction<Application, String> JOB_ID = Application::getJobId;
+    public static final SFunction<Application, Date> START_TIME = Application::getStartTime;
+    public static final SFunction<Application, Date> END_TIME = Application::getEndTime;
+    public static final SFunction<Application, Long> DURATION = Application::getDuration;
+    public static final SFunction<Application, Integer> TOTAL_TASK = Application::getTotalTask;
+    public static final SFunction<Application, Integer> TOTAL_TM = Application::getTotalTM;
+    public static final SFunction<Application, Integer> TOTAL_SLOT = Application::getTotalSlot;
+    public static final SFunction<Application, Integer> JM_MEMORY = Application::getJmMemory;
+    public static final SFunction<Application, Integer> TM_MEMORY = Application::getTmMemory;
+    public static final SFunction<Application, Integer> STATE = Application::getState;
+    public static final SFunction<Application, String> OPTIONS = Application::getOptions;
+    public static final SFunction<Application, Integer> AVAILABLE_SLOT =
+        Application::getAvailableSlot;
+    public static final SFunction<Application, Integer> EXECUTION_MODE =
+        Application::getExecutionMode;
+    public static final SFunction<Application, String> JOB_MANAGER_URL =
+        Application::getJobManagerUrl;
   }
 }

@@ -18,7 +18,6 @@
 package org.apache.streampark.common.conf
 
 /** Flink kubernetes Configuration for v1 version */
-
 object K8sFlinkConfig {
 
   lazy val isV2Enabled: Boolean = InternalConfigHolder.get(ENABLE_V2)
@@ -26,14 +25,14 @@ object K8sFlinkConfig {
   val ENABLE_V2: InternalOption = InternalOption(
     key = "streampark.flink-k8s.enable-v2",
     defaultValue = false,
-    classType = classOf[Boolean],
+    classType = classOf[java.lang.Boolean],
     description =
       "Whether to enable the v2 version(base on flink-kubernetes-operator) of flink kubernetes operation"
   )
 
   //  ======= deprecated =======
 
-  @deprecated
+  @Deprecated
   val jobStatusTrackTaskTimeoutSec: InternalOption = InternalOption(
     key = "streampark.flink-k8s.tracking.polling-task-timeout-sec.job-status",
     defaultValue = 120L,
@@ -41,7 +40,7 @@ object K8sFlinkConfig {
     description = "run timeout seconds of single flink-k8s metrics tracking task"
   )
 
-  @deprecated
+  @Deprecated
   val metricTrackTaskTimeoutSec: InternalOption = InternalOption(
     key = "streampark.flink-k8s.tracking.polling-task-timeout-sec.cluster-metric",
     defaultValue = 120L,
@@ -49,7 +48,7 @@ object K8sFlinkConfig {
     description = "run timeout seconds of single flink-k8s job status tracking task"
   )
 
-  @deprecated
+  @Deprecated
   val jobStatueTrackTaskIntervalSec: InternalOption = InternalOption(
     key = "streampark.flink-k8s.tracking.polling-interval-sec.job-status",
     defaultValue = 5L,
@@ -57,7 +56,7 @@ object K8sFlinkConfig {
     description = "interval seconds between two single flink-k8s metrics tracking task"
   )
 
-  @deprecated
+  @Deprecated
   val metricTrackTaskIntervalSec: InternalOption = InternalOption(
     key = "streampark.flink-k8s.tracking.polling-interval-sec.cluster-metric",
     defaultValue = 5L,
@@ -65,7 +64,7 @@ object K8sFlinkConfig {
     description = "interval seconds between two single flink-k8s metrics tracking task"
   )
 
-  @deprecated
+  @Deprecated
   val silentStateJobKeepTrackingSec: InternalOption = InternalOption(
     key = "streampark.flink-k8s.tracking.silent-state-keep-sec",
     defaultValue = 60,
@@ -86,7 +85,7 @@ object K8sFlinkConfig {
   )
 
   /** kubernetes default namespace */
-  @deprecated
+  @Deprecated
   val DEFAULT_KUBERNETES_NAMESPACE = "default"
 
 }

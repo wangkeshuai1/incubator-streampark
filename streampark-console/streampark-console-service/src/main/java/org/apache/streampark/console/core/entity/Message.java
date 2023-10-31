@@ -17,7 +17,7 @@
 
 package org.apache.streampark.console.core.entity;
 
-import org.apache.streampark.console.core.enums.NoticeType;
+import org.apache.streampark.console.core.enums.NoticeTypeEnum;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -48,14 +48,13 @@ public class Message {
 
   private Date createTime;
 
-  public Message() {}
-
-  public Message(Long userId, Long appId, String title, String context, NoticeType noticeType) {
+  public Message(
+      Long userId, Long appId, String title, String context, NoticeTypeEnum noticeTypeEnum) {
     this.userId = userId;
     this.appId = appId;
     this.title = title;
     this.context = context;
-    this.type = noticeType.get();
+    this.type = noticeTypeEnum.get();
     this.createTime = new Date();
     this.isRead = false;
   }

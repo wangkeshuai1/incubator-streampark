@@ -19,7 +19,7 @@ package org.apache.streampark.console.core.service.application;
 
 import org.apache.streampark.console.base.exception.ApplicationException;
 import org.apache.streampark.console.core.entity.Application;
-import org.apache.streampark.console.core.enums.AppExistsState;
+import org.apache.streampark.console.core.enums.AppExistsStateEnum;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -33,14 +33,6 @@ import java.util.Map;
  * application.
  */
 public interface ApplicationInfoService extends IService<Application> {
-
-  /**
-   * Maps the given application.
-   *
-   * @param appParam The application to be mapped.
-   * @return True if the mapping was successful, false otherwise.
-   */
-  boolean mapping(Application appParam);
 
   /**
    * Checks the environment for the given application.
@@ -140,14 +132,7 @@ public interface ApplicationInfoService extends IService<Application> {
    * @param appParam The application to check for existence.
    * @return AppExistsState indicating the existence state of the application.
    */
-  AppExistsState checkExists(Application appParam);
-
-  /**
-   * Persists the metrics of the given application.
-   *
-   * @param appParam The application which metrics need to be persisted.
-   */
-  void persistMetrics(Application appParam);
+  AppExistsStateEnum checkExists(Application appParam);
 
   /**
    * Reads the configuration for the given application and returns it as a String.

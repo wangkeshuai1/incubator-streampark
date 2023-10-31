@@ -17,7 +17,7 @@
 
 package org.apache.streampark.console.core.service.application;
 
-import org.apache.streampark.common.enums.ExecutionMode;
+import org.apache.streampark.common.enums.FlinkExecutionMode;
 import org.apache.streampark.console.base.domain.RestRequest;
 import org.apache.streampark.console.core.entity.Application;
 
@@ -75,6 +75,21 @@ public interface ApplicationManageService extends IService<Application> {
    * @param appParam the application to be set effective
    */
   void toEffective(Application appParam);
+
+  /**
+   * Persists the metrics of the given application.
+   *
+   * @param appParam The application which metrics need to be persisted.
+   */
+  void persistMetrics(Application appParam);
+
+  /**
+   * Maps the given application.
+   *
+   * @param appParam The application to be mapped.
+   * @return True if the mapping was successful, false otherwise.
+   */
+  boolean mapping(Application appParam);
 
   /**
    * Checks if the given application is ready to build and update.
@@ -143,12 +158,12 @@ public interface ApplicationManageService extends IService<Application> {
    * Retrieves a list of applications by team ID and execution modes.
    *
    * @param teamId The ID of the team to filter by
-   * @param executionModes The collection of execution modes to filter by
+   * @param executionModeEnums The collection of execution modes to filter by
    * @return A list of applications that belong to the specified team and have the specified
    *     execution modes
    */
   List<Application> getByTeamIdAndExecutionModes(
-      Long teamId, Collection<ExecutionMode> executionModes);
+      Long teamId, Collection<FlinkExecutionMode> executionModeEnums);
 
   /**
    * Retrieves a list of applications be probing or need to probe.

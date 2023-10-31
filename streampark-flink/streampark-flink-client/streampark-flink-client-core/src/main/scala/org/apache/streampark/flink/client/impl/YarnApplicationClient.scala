@@ -17,8 +17,9 @@
 
 package org.apache.streampark.flink.client.impl
 
-import org.apache.streampark.common.conf.{ConfigConst, Workspace}
-import org.apache.streampark.common.enums.DevelopmentMode
+import org.apache.streampark.common.Constant
+import org.apache.streampark.common.conf.{ConfigKeys, Workspace}
+import org.apache.streampark.common.enums.FlinkDevelopmentMode
 import org.apache.streampark.common.fs.FsOperator
 import org.apache.streampark.common.util.{FileUtils, HdfsUtils, Utils}
 import org.apache.streampark.flink.client.`trait`.YarnClientTrait
@@ -69,7 +70,7 @@ object YarnApplicationClient extends YarnClientTrait {
         submitRequest.hdfsWorkspace.appPlugins
       )
       submitRequest.developmentMode match {
-        case DevelopmentMode.FLINK_SQL =>
+        case FlinkDevelopmentMode.FLINK_SQL =>
           array += s"${workspace.APP_SHIMS}/flink-${submitRequest.flinkVersion.majorVersion}"
           val jobLib = s"${workspace.APP_WORKSPACE}/${submitRequest.id}/lib"
           if (HdfsUtils.exists(jobLib)) {
@@ -95,16 +96,14 @@ object YarnApplicationClient extends YarnClientTrait {
       // yarn application Type
       .safeSet(YarnConfigOptions.APPLICATION_TYPE, submitRequest.applicationType.getName)
 
-    if (submitRequest.developmentMode == DevelopmentMode.PYFLINK) {
+    if (submitRequest.developmentMode == FlinkDevelopmentMode.PYFLINK) {
       val pyVenv: String = workspace.APP_PYTHON_VENV
       if (!FsOperator.hdfs.exists(pyVenv)) {
         throw new RuntimeException(s"$pyVenv File does not exist")
       }
 
-      val localLib: String = s"${Workspace.local.APP_WORKSPACE}/${submitRequest.id}/lib"
-      if (FileUtils.exists(localLib) && FileUtils.directoryNotBlank(localLib)) {
-        flinkConfig.safeSet(PipelineOptions.JARS, util.Arrays.asList(localLib))
-      }
+      // including $app/lib
+      includingPipelineJars(submitRequest, flinkConfig)
 
       // yarn.ship-files
       val shipFiles = new util.ArrayList[String]()
@@ -117,15 +116,15 @@ object YarnApplicationClient extends YarnClientTrait {
         // python.archives
         .safeSet(PythonOptions.PYTHON_ARCHIVES, pyVenv)
         // python.client.executable
-        .safeSet(PythonOptions.PYTHON_CLIENT_EXECUTABLE, ConfigConst.PYTHON_EXECUTABLE)
+        .safeSet(PythonOptions.PYTHON_CLIENT_EXECUTABLE, Constant.PYTHON_EXECUTABLE)
         // python.executable
-        .safeSet(PythonOptions.PYTHON_EXECUTABLE, ConfigConst.PYTHON_EXECUTABLE)
+        .safeSet(PythonOptions.PYTHON_EXECUTABLE, Constant.PYTHON_EXECUTABLE)
 
       val args: util.List[String] = flinkConfig.get(ApplicationConfiguration.APPLICATION_ARGS)
       // Caused by: java.lang.UnsupportedOperationException
       val argsList: util.ArrayList[String] = new util.ArrayList[String](args)
       argsList.add("-pym")
-      argsList.add(submitRequest.userJarFile.getName.dropRight(ConfigConst.PYTHON_SUFFIX.length))
+      argsList.add(submitRequest.userJarFile.getName.dropRight(Constant.PYTHON_SUFFIX.length))
       flinkConfig.safeSet(ApplicationConfiguration.APPLICATION_ARGS, argsList)
     }
 

@@ -17,7 +17,7 @@
 
 package org.apache.streampark.flink.packer.pipeline.impl
 
-import org.apache.streampark.common.enums.DevelopmentMode
+import org.apache.streampark.common.enums.FlinkDevelopmentMode
 import org.apache.streampark.common.fs.LfsOperator
 import org.apache.streampark.flink.packer.maven.MavenTool
 import org.apache.streampark.flink.packer.pipeline._
@@ -30,7 +30,7 @@ import scala.language.postfixOps
 class FlinkK8sApplicationBuildPipelineV2(request: FlinkK8sApplicationBuildRequest)
   extends BuildPipeline {
 
-  override def pipeType: PipelineType = PipelineType.FLINK_K8S_APPLICATION_V2
+  override def pipeType: PipelineTypeEnum = PipelineTypeEnum.FLINK_K8S_APPLICATION_V2
 
   @throws[Throwable]
   override protected def buildProcess(): K8sAppModeBuildResponse = {
@@ -41,7 +41,7 @@ class FlinkK8sApplicationBuildPipelineV2(request: FlinkK8sApplicationBuildReques
       execStep(1) {
         val buildWorkspace = s"${request.workspace}/${request.clusterId}@${request.k8sNamespace}"
         LfsOperator.mkCleanDirs(buildWorkspace)
-        logInfo(s"recreate building workspace: $buildWorkspace")
+        logInfo(s"Recreate building workspace: $buildWorkspace")
         buildWorkspace
       }.getOrElse(throw getError.exception)
 
@@ -51,13 +51,13 @@ class FlinkK8sApplicationBuildPipelineV2(request: FlinkK8sApplicationBuildReques
       execStep(2) {
         val shadedJarOutputPath = request.getShadedJarPath(buildWorkspace)
         val extJarLibs = request.developmentMode match {
-          case DevelopmentMode.FLINK_SQL => request.dependencyInfo.extJarLibs
-          case DevelopmentMode.CUSTOM_CODE => Set.empty[String]
+          case FlinkDevelopmentMode.FLINK_SQL => request.dependencyInfo.extJarLibs
+          case FlinkDevelopmentMode.CUSTOM_CODE => Set.empty[String]
           case _ => Set.empty[String]
         }
         val shadedJar =
           MavenTool.buildFatJar(request.mainClass, request.providedLibs, shadedJarOutputPath)
-        logInfo(s"output shaded flink job jar: ${shadedJar.getAbsolutePath}")
+        logInfo(s"Output shaded flink job jar: ${shadedJar.getAbsolutePath}")
         shadedJar -> extJarLibs
       }.getOrElse(throw getError.exception)
 
