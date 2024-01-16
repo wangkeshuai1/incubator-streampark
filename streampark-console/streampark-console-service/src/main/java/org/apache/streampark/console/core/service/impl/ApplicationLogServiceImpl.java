@@ -17,7 +17,6 @@
 
 package org.apache.streampark.console.core.service.impl;
 
-import org.apache.streampark.console.base.domain.Constant;
 import org.apache.streampark.console.base.domain.RestRequest;
 import org.apache.streampark.console.base.mybatis.pager.MybatisPager;
 import org.apache.streampark.console.core.entity.ApplicationLog;
@@ -40,9 +39,9 @@ public class ApplicationLogServiceImpl extends ServiceImpl<ApplicationLogMapper,
     implements ApplicationLogService {
 
   @Override
-  public IPage<ApplicationLog> page(ApplicationLog applicationLog, RestRequest request) {
-    Page<ApplicationLog> page =
-        new MybatisPager<ApplicationLog>().getPage(request, "option_time", Constant.ORDER_DESC);
+  public IPage<ApplicationLog> getPage(ApplicationLog applicationLog, RestRequest request) {
+    request.setSortField("option_time");
+    Page<ApplicationLog> page = MybatisPager.getPage(request);
     LambdaQueryWrapper<ApplicationLog> queryWrapper =
         new LambdaQueryWrapper<ApplicationLog>()
             .eq(ApplicationLog::getAppId, applicationLog.getAppId());
@@ -50,14 +49,9 @@ public class ApplicationLogServiceImpl extends ServiceImpl<ApplicationLogMapper,
   }
 
   @Override
-  public void removeApp(Long appId) {
+  public void removeByAppId(Long appId) {
     LambdaQueryWrapper<ApplicationLog> queryWrapper =
         new LambdaQueryWrapper<ApplicationLog>().eq(ApplicationLog::getAppId, appId);
     this.remove(queryWrapper);
-  }
-
-  @Override
-  public Boolean delete(ApplicationLog applicationLog) {
-    return removeById(applicationLog.getId());
   }
 }

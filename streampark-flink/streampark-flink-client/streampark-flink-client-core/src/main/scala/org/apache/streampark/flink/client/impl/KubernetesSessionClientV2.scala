@@ -125,6 +125,7 @@ object KubernetesSessionClientV2 extends KubernetesClientV2Trait with Logger {
       ))
   }
 
+  /** Deploy Flink cluster. */
   @throws[Throwable]
   def deploy(deployRequest: DeployRequest): DeployResponse = {
     logInfo(
@@ -157,13 +158,14 @@ object KubernetesSessionClientV2 extends KubernetesClientV2Trait with Logger {
     FlinkK8sOperator.deployCluster(deployRequest.id, flinkDeployDef).runIOAsTry match {
       case Success(_) =>
         logInfo(richMsg("Flink Cluster has been submitted successfully."))
-        DeployResponse(null, deployRequest.clusterId)
       case Failure(err) =>
         logError(
           richMsg(s"Submit Flink Cluster fail in${deployRequest.executionMode.getName}_V2 mode!"),
           err)
         throw err
     }
+
+    DeployResponse(null, deployRequest.clusterId)
   }
 
   /** Shutdown Flink cluster. */
@@ -190,6 +192,7 @@ object KubernetesSessionClientV2 extends KubernetesClientV2Trait with Logger {
     }
   }
 
+  /** Generate FlinkDeployment CR definition, it is a pure effect function. */
   private def genFlinkDeployDef(
       deployReq: DeployRequest,
       originFlinkConfig: Configuration): Either[FailureMessage, FlinkDeploymentDef] = {

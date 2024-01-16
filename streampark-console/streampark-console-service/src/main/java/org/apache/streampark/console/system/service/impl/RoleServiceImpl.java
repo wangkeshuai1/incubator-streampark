@@ -20,6 +20,7 @@ package org.apache.streampark.console.system.service.impl;
 import org.apache.streampark.console.base.domain.Constant;
 import org.apache.streampark.console.base.domain.RestRequest;
 import org.apache.streampark.console.base.exception.ApiAlertException;
+import org.apache.streampark.console.base.mybatis.pager.MybatisPager;
 import org.apache.streampark.console.system.entity.Role;
 import org.apache.streampark.console.system.entity.RoleMenu;
 import org.apache.streampark.console.system.mapper.RoleMapper;
@@ -59,15 +60,13 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
   @Autowired private RoleMenuServie roleMenuService;
 
   @Override
-  public IPage<Role> findRoles(Role role, RestRequest request) {
-    Page<Role> page = new Page<>();
-    page.setCurrent(request.getPageNum());
-    page.setSize(request.getPageSize());
+  public IPage<Role> getPage(Role role, RestRequest request) {
+    Page<Role> page = MybatisPager.getPage(request);
     return this.baseMapper.selectPage(page, role);
   }
 
   @Override
-  public Role findByName(String roleName) {
+  public Role getByName(String roleName) {
     return baseMapper.selectOne(new LambdaQueryWrapper<Role>().eq(Role::getRoleName, roleName));
   }
 
@@ -81,21 +80,21 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
   }
 
   @Override
-  public void deleteRole(Long roleId) {
+  public void removeById(Long roleId) {
     Role role =
         Optional.ofNullable(this.getById(roleId))
             .orElseThrow(
                 () ->
                     new ApiAlertException(
                         String.format("Role id [%s] not found. Delete role failed.", roleId)));
-    List<Long> userIdsByRoleId = memberService.findUserIdsByRoleId(roleId);
+    List<Long> userIdsByRoleId = memberService.listUserIdsByRoleId(roleId);
     ApiAlertException.throwIfFalse(
         CollectionUtils.isEmpty(userIdsByRoleId),
         String.format(
             "There are some users of role %s, delete role failed, please unbind it first.",
             role.getRoleName()));
-    this.removeById(roleId);
-    this.roleMenuService.deleteByRoleId(roleId);
+    super.removeById(roleId);
+    this.roleMenuService.removeByRoleId(roleId);
   }
 
   @Override

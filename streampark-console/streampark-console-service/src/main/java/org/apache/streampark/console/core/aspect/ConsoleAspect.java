@@ -1,6 +1,4 @@
 /*
- * Copyright (c) 2019 The StreamX Project
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -8,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *    https://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -126,14 +124,14 @@ public class ConsoleAspect {
           break;
         case TEAM:
           ApiAlertException.throwIfTrue(
-              memberService.findByUserName(paramId, currentUser.getUsername()) == null,
+              memberService.getByTeamIdUserName(paramId, currentUser.getUsername()) == null,
               "Permission denied, only user belongs to this team can access this permission");
           break;
         case APP:
           Application app = applicationManageService.getById(paramId);
           ApiAlertException.throwIfTrue(app == null, "Invalid operation, application is null");
           ApiAlertException.throwIfTrue(
-              memberService.findByUserName(app.getTeamId(), currentUser.getUsername()) == null,
+              memberService.getByTeamIdUserName(app.getTeamId(), currentUser.getUsername()) == null,
               "Permission denied, only user belongs to this team can access this permission");
           break;
         default:

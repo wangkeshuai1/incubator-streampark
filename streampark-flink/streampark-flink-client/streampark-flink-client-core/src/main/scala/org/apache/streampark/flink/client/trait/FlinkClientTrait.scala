@@ -20,9 +20,9 @@ package org.apache.streampark.flink.client.`trait`
 import org.apache.streampark.common.Constant
 import org.apache.streampark.common.conf.ConfigKeys._
 import org.apache.streampark.common.conf.Workspace
-import org.apache.streampark.common.enums.{ApplicationType, FlinkDevelopmentMode, FlinkExecutionMode, FlinkRestoreMode}
+import org.apache.streampark.common.enums._
 import org.apache.streampark.common.fs.FsOperator
-import org.apache.streampark.common.util.{DeflaterUtils, ExceptionUtils, FileUtils, Logger, PropertiesUtils, SystemPropertyUtils, Utils}
+import org.apache.streampark.common.util._
 import org.apache.streampark.flink.client.bean._
 import org.apache.streampark.flink.core.FlinkClusterClient
 import org.apache.streampark.flink.core.conf.FlinkRunOption
@@ -42,11 +42,8 @@ import org.apache.flink.runtime.jobgraph.{JobGraph, SavepointConfigOptions}
 import org.apache.flink.util.FlinkException
 import org.apache.flink.util.Preconditions.checkNotNull
 
-import java.util
 import java.util.{Collections, List => JavaList, Map => JavaMap}
 
-import scala.annotation.tailrec
-import scala.collection.JavaConverters._
 import scala.collection.convert.ImplicitConversions._
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -257,9 +254,6 @@ trait FlinkClientTrait extends Logger {
       flinkConfig: Configuration): (PackagedProgram, JobGraph) = {
 
     val pkgBuilder = PackagedProgram.newBuilder
-      .setUserClassPaths(
-        Lists.newArrayList(submitRequest.flinkVersion.flinkLibs: _*)
-      )
       .setEntryPointClassName(
         flinkConfig.getOptional(ApplicationConfiguration.APPLICATION_MAIN_CLASS).get()
       )
@@ -276,8 +270,6 @@ trait FlinkClientTrait extends Logger {
         if (!FsOperator.lfs.exists(pythonVenv)) {
           throw new RuntimeException(s"$pythonVenv File does not exist")
         }
-        // including $app/lib
-        includingPipelineJars(submitRequest, flinkConfig)
         flinkConfig
           // python.archives
           .safeSet(PythonOptions.PYTHON_ARCHIVES, pythonVenv)
@@ -285,8 +277,13 @@ trait FlinkClientTrait extends Logger {
           .safeSet(PythonOptions.PYTHON_CLIENT_EXECUTABLE, Constant.PYTHON_EXECUTABLE)
           // python.executable
           .safeSet(PythonOptions.PYTHON_EXECUTABLE, Constant.PYTHON_EXECUTABLE)
+        if (submitRequest.libs.nonEmpty) {
+          pkgBuilder.setUserClassPaths(submitRequest.libs)
+        }
       case _ =>
-        pkgBuilder.setJarFile(submitRequest.userJarFile)
+        pkgBuilder
+          .setUserClassPaths(submitRequest.classPaths)
+          .setJarFile(submitRequest.userJarFile)
     }
 
     val packageProgram = pkgBuilder.build()
@@ -593,15 +590,6 @@ trait FlinkClientTrait extends Logger {
     val savepointPath = tryGetSavepointPathIfNeed(savepointRequest)
     val clientWrapper = new FlinkClusterClient(client)
     clientWrapper.triggerSavepoint(jobID, savepointPath, savepointRequest.nativeFormat).get()
-  }
-
-  private[client] def includingPipelineJars(
-      submitRequest: SubmitRequest,
-      flinkConfig: Configuration) = {
-    val localLib: String = s"${Workspace.local.APP_WORKSPACE}/${submitRequest.id}/lib"
-    if (FileUtils.exists(localLib) && FileUtils.directoryNotBlank(localLib)) {
-      flinkConfig.safeSet(PipelineOptions.JARS, util.Arrays.asList(localLib))
-    }
   }
 
 }

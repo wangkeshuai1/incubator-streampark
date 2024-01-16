@@ -19,7 +19,6 @@ package org.apache.streampark.console.core.service.impl;
 
 import org.apache.streampark.common.util.DeflaterUtils;
 import org.apache.streampark.common.util.Utils;
-import org.apache.streampark.console.base.domain.Constant;
 import org.apache.streampark.console.base.domain.RestRequest;
 import org.apache.streampark.console.base.exception.ApiAlertException;
 import org.apache.streampark.console.base.mybatis.pager.MybatisPager;
@@ -107,7 +106,7 @@ public class ApplicationConfigServiceImpl
       ApplicationConfig effectiveConfig = getEffective(appParam.getId());
       if (Utils.isEmpty(appParam.getConfig())) {
         if (effectiveConfig != null) {
-          effectiveService.delete(appParam.getId(), EffectiveTypeEnum.CONFIG);
+          effectiveService.remove(appParam.getId(), EffectiveTypeEnum.CONFIG);
         }
       } else {
         // there was no configuration before, is a new configuration
@@ -202,9 +201,9 @@ public class ApplicationConfigServiceImpl
   }
 
   @Override
-  public IPage<ApplicationConfig> page(ApplicationConfig config, RestRequest request) {
-    Page<ApplicationConfig> page =
-        new MybatisPager<ApplicationConfig>().getPage(request, "version", Constant.ORDER_DESC);
+  public IPage<ApplicationConfig> getPage(ApplicationConfig config, RestRequest request) {
+    request.setSortField("version");
+    Page<ApplicationConfig> page = MybatisPager.getPage(request);
     IPage<ApplicationConfig> configList =
         this.baseMapper.selectPageByAppId(page, config.getAppId());
     fillEffectiveField(config.getAppId(), configList.getRecords());
@@ -212,7 +211,7 @@ public class ApplicationConfigServiceImpl
   }
 
   @Override
-  public List<ApplicationConfig> history(Application appParam) {
+  public List<ApplicationConfig> list(Application appParam) {
     LambdaQueryWrapper<ApplicationConfig> queryWrapper =
         new LambdaQueryWrapper<ApplicationConfig>()
             .eq(ApplicationConfig::getAppId, appParam.getId())
@@ -245,7 +244,7 @@ public class ApplicationConfigServiceImpl
   }
 
   @Override
-  public void removeApp(Long appId) {
+  public void removeByAppId(Long appId) {
     baseMapper.delete(
         new LambdaQueryWrapper<ApplicationConfig>().eq(ApplicationConfig::getAppId, appId));
   }

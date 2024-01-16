@@ -82,15 +82,14 @@ public class FlinkSqlController {
             .put(END, flinkSqlValidationResult.errorLine() + 1);
       }
       return response;
-    } else {
-      return RestResponse.success(true);
     }
+    return RestResponse.success(true);
   }
 
   @Operation(summary = "List the application sql")
   @PostMapping("list")
   public RestResponse list(Long appId, RestRequest request) {
-    IPage<FlinkSql> page = flinkSqlService.page(appId, request);
+    IPage<FlinkSql> page = flinkSqlService.getPage(appId, request);
     return RestResponse.success(page);
   }
 
@@ -119,7 +118,7 @@ public class FlinkSqlController {
   @Operation(summary = "List the applications sql histories")
   @PostMapping("history")
   public RestResponse sqlhistory(Application application) {
-    List<FlinkSql> sqlList = flinkSqlService.history(application);
+    List<FlinkSql> sqlList = flinkSqlService.listFlinkSqlHistory(application);
     return RestResponse.success(sqlList);
   }
 

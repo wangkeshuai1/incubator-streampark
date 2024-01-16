@@ -62,7 +62,7 @@ public interface SavePointService extends IService<SavePoint> {
    * @return true if the application is successfully deleted, false otherwise
    * @throws InternalException if there is an internal error during the deletion process
    */
-  Boolean delete(Long id, Application appParam) throws InternalException;
+  Boolean remove(Long id, Application appParam) throws InternalException;
 
   /**
    * Retrieves a page of savepoint objects based on the specified parameters.
@@ -71,14 +71,14 @@ public interface SavePointService extends IService<SavePoint> {
    * @param request The RestRequest object containing additional request parameters.
    * @return An instance of IPage<SavePoint> representing the page of SavePoint objects.
    */
-  IPage<SavePoint> page(SavePoint savePoint, RestRequest request);
+  IPage<SavePoint> getPage(SavePoint savePoint, RestRequest request);
 
   /**
    * Removes all savepoints for the specified application.
    *
    * @param appParam the application to be removed
    */
-  void removeApp(Application appParam);
+  void remove(Application appParam);
 
   /**
    * Returns the savepoint path for the given application.

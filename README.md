@@ -26,11 +26,10 @@
 
 <div align="center">
 
-[![License](https://img.shields.io/badge/license-Apache%202-blue.svg?style=for-the-badge&label=license)](https://www.apache.org/licenses/LICENSE-2.0.html)
-[![stars](https://img.shields.io/github/stars/apache/streampark?style=for-the-badge&label=stars)](https://github.com/apache/incubator-streampark/stargazers)
+[![Stars](https://img.shields.io/github/stars/apache/streampark?style=for-the-badge&label=stars)](https://github.com/apache/incubator-streampark/stargazers)
 [![Latest release](https://img.shields.io/github/v/release/apache/streampark.svg?style=for-the-badge&label=release)](https://github.com/apache/incubator-streampark/releases)
-[![total downloads](https://img.shields.io/github/downloads/apache/streampark/total.svg?style=for-the-badge&label=downloads)](https://streampark.apache.org/download)
-[![Twitter](https://img.shields.io/twitter/follow/ASFStreamPark?label=follow&logo=twitter&style=for-the-badge)](https://twitter.com/ASFStreamPark)
+[![Total Downloads](https://img.shields.io/github/downloads/apache/streampark/total.svg?style=for-the-badge&label=downloads)](https://streampark.apache.org/download)
+[![Twitter Follow](https://img.shields.io/twitter/follow/ASFStreamPark?label=follow&logo=x&style=for-the-badge)](https://twitter.com/ASFStreamPark)
 
 **[Website](https://streampark.apache.org)**&nbsp;&nbsp;|&nbsp;&nbsp;
 **[Document](https://streampark.apache.org/docs/intro)**&nbsp;&nbsp;|&nbsp;&nbsp;
@@ -59,6 +58,12 @@
 
 ![](https://streampark.apache.org/image/sqlide.png)
 
+## 🚀 QuickStart
+- [Start with Docker](docker/README.md)
+- [Start with Kubernetes](helm/README.md)
+
+Click [Document](https://streampark.apache.org/docs/user-guide/quick-start) for more information
+
 ## 🔨 How to Build
 
 ```shell
@@ -70,10 +75,6 @@ cd incubator-streampark
 ## 🧑‍💻 Downloads
 
 Download address for run-directly software package : [https://streampark.apache.org/download](https://streampark.apache.org/download)
-
-## 🚀 Quick Start
-
-Click [Document](https://streampark.apache.org/docs/user-guide/quick-start) for more information
 
 ## 💋 Our users
 
@@ -87,21 +88,25 @@ Various companies and organizations use StreamPark for research, production and 
 
 ### 🙋 Submit Pull Request and Issues
 
-You can submit any ideas as [pull requests](https://github.com/apache/incubator-streampark/pulls) or as [GitHub issues](https://github.com/apache/incubator-streampark/issues/new/choose).
+You can submit any ideas as [pull requests](https://github.com/apache/incubator-streampark/pulls) or as [issues](https://github.com/apache/incubator-streampark/issues/new/choose).
 
 > If you're new to posting issues, we ask that you read [*How To Ask Questions The Smart Way*](http://www.catb.org/~esr/faqs/smart-questions.html) (**This guide does not provide actual support services for this project!**), [How to Report Bugs Effectively](http://www.chiark.greenend.org.uk/~sgtatham/bugs.html) prior to posting. Well written bug reports help us help you!
 
 ### 🍻 How to Contribute
 
-We welcome your suggestions, comments (including criticisms), comments and contributions. See 🔗[How to Contribute](https://streampark.apache.org/community/submit_guide/submit_code) and 🔗[Code Submission Guide](https://streampark.apache.org/community/submit_guide/submit_code)
+We welcome your suggestions, comments (including criticisms), comments and contributions. See [How to Contribute](https://streampark.apache.org/community/submit_guide/submit_code) and [Code Submission Guide](https://streampark.apache.org/community/submit_guide/code_style_and_quality_guide)
 
 Thank you to all the people who already contributed to StreamPark!
 
 [![contrib graph](https://contrib.rocks/image?repo=apache/streampark)](https://github.com/apache/incubator-streampark/graphs/contributors)
 
+## License
+
+Licensed under the [Apache License, Version 2.0](LICENSE)
+
 ## 💬 Social Media
 
-- [Twitter](https://twitter.com/ASFStreamPark)
+- [ X (twitter)](https://twitter.com/ASFStreamPark)
 - [Zhihu](https://www.zhihu.com/people/streampark) (in Chinese)
 - [bilibili](https://space.bilibili.com/455330087) (in Chinese)
 - WeChat Official Account (in Chinese, scan the QR code to follow)

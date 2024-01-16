@@ -82,7 +82,7 @@ public class ExternalLinkController {
   @PostMapping("/update")
   @RequiresPermissions("externalLink:update")
   public RestResponse update(@Valid ExternalLink externalLink) {
-    Utils.notNull(externalLink.getId(), "The link id cannot be null");
+    Utils.requireNotNull(externalLink.getId(), "The link id cannot be null");
     externalLinkService.update(externalLink);
     return RestResponse.success();
   }
@@ -93,7 +93,7 @@ public class ExternalLinkController {
   @RequiresPermissions("externalLink:delete")
   public RestResponse delete(
       @NotNull(message = "The link id cannot be null") @RequestParam("id") Long id) {
-    externalLinkService.delete(id);
+    externalLinkService.removeById(id);
     return RestResponse.success();
   }
 }
