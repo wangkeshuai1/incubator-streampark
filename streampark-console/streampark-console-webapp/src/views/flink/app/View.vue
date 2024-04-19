@@ -25,7 +25,7 @@
   import { useI18n } from '/@/hooks/web/useI18n';
   import { AppStateEnum, JobTypeEnum, OptionStateEnum, ReleaseStateEnum } from '/@/enums/flinkEnum';
   import { useTimeoutFn } from '@vueuse/core';
-  import { Tooltip, Badge, Divider, Tag, Popover } from 'ant-design-vue';
+  import { Tooltip, Badge, Tag, Popover } from 'ant-design-vue';
   import { fetchAppRecord } from '/@/api/flink/app';
   import { useTable } from '/@/components/Table';
   import { PageWrapper } from '/@/components/Page';
@@ -49,7 +49,7 @@
   } from './components/State';
   import { useSavepoint } from './hooks/useSavepoint';
   import { useAppTableColumns } from './hooks/useAppTableColumns';
-
+  import AppTableResize from './components/AppResize.vue';
   const { t } = useI18n();
   const optionApps = {
     starting: new Map(),
@@ -62,7 +62,7 @@
 
   const yarn = ref<Nullable<string>>(null);
   const currentTablePage = ref(1);
-  const { onTableColumnResize, getAppColumns } = useAppTableColumns();
+  const { onTableColumnResize, tableColumnWidth, getAppColumns } = useAppTableColumns();
   const { openSavepoint } = useSavepoint(handleOptionApp);
   const [registerStartModal, { openModal: openStartModal }] = useModal();
   const [registerStopModal, { openModal: openStopModal }] = useModal();
@@ -207,7 +207,7 @@
       app['optionState'] === OptionStateEnum.SAVEPOINTING
     ) {
       // yarn-per-job|yarn-session|yarn-application
-      handleView(app, unref(yarn));
+      await handleView(app, unref(yarn));
     }
   }
 
@@ -336,17 +336,17 @@
             :title="releaseTitleMap[record.release] || ''"
             :data="record"
           />
-          <Divider type="vertical" style="margin: 0 4px" v-if="record.buildStatus" />
-          <State
-            option="build"
-            :maxTitle="titleLenRef.maxBuild"
-            :click="openBuildProgressDetailDrawer.bind(null, record)"
-            :data="record"
-          />
         </template>
         <template v-if="column.dataIndex === 'operation'">
           <TableAction v-bind="getTableActions(record, currentTablePage)" />
         </template>
+      </template>
+      <template #insertTable="{ tableContainer }">
+        <AppTableResize
+          :table-container="tableContainer"
+          :resize-min="100"
+          v-model:left="tableColumnWidth.jobName"
+        />
       </template>
     </BasicTable>
     <StartApplicationModal @register="registerStartModal" @update-option="handleOptionApp" />

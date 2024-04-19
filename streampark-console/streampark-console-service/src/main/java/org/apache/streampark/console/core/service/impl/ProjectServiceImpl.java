@@ -21,18 +21,23 @@ import org.apache.streampark.common.Constant;
 import org.apache.streampark.common.conf.CommonConfig;
 import org.apache.streampark.common.conf.InternalConfigHolder;
 import org.apache.streampark.common.conf.Workspace;
+import org.apache.streampark.common.util.AssertUtils;
 import org.apache.streampark.common.util.CompletableFutureUtils;
 import org.apache.streampark.common.util.FileUtils;
-import org.apache.streampark.common.util.Utils;
 import org.apache.streampark.console.base.domain.ResponseCode;
 import org.apache.streampark.console.base.domain.RestRequest;
 import org.apache.streampark.console.base.domain.RestResponse;
 import org.apache.streampark.console.base.exception.ApiAlertException;
+import org.apache.streampark.console.base.exception.ApiDetailException;
 import org.apache.streampark.console.base.mybatis.pager.MybatisPager;
+import org.apache.streampark.console.base.util.EncryptUtils;
 import org.apache.streampark.console.base.util.GZipUtils;
+import org.apache.streampark.console.base.util.GitUtils;
+import org.apache.streampark.console.base.util.ShaHashUtils;
 import org.apache.streampark.console.core.entity.Application;
 import org.apache.streampark.console.core.entity.Project;
 import org.apache.streampark.console.core.enums.BuildStateEnum;
+import org.apache.streampark.console.core.enums.GitAuthorizedErrorEnum;
 import org.apache.streampark.console.core.enums.ReleaseStateEnum;
 import org.apache.streampark.console.core.mapper.ProjectMapper;
 import org.apache.streampark.console.core.service.ProjectService;
@@ -40,6 +45,7 @@ import org.apache.streampark.console.core.service.application.ApplicationManageS
 import org.apache.streampark.console.core.task.ProjectBuildTask;
 import org.apache.streampark.console.core.watcher.FlinkAppHttpWatcher;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.configuration.MemorySize;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -94,8 +100,20 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
     RestResponse response = RestResponse.success();
 
     ApiAlertException.throwIfTrue(count > 0, "project name already exists, add project failed");
-
-    project.setCreateTime(new Date());
+    if (StringUtils.isNotBlank(project.getPassword())) {
+      String salt = ShaHashUtils.getRandomSalt();
+      try {
+        String encrypt = EncryptUtils.encrypt(project.getPassword(), salt);
+        project.setSalt(salt);
+        project.setPassword(encrypt);
+      } catch (Exception e) {
+        log.error("Project password decrypt failed", e);
+        throw new ApiAlertException("Project github/gitlab password decrypt failed");
+      }
+    }
+    Date date = new Date();
+    project.setCreateTime(date);
+    project.setModifyTime(date);
     boolean status = save(project);
 
     if (status) {
@@ -107,22 +125,34 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
   @Override
   public boolean update(Project projectParam) {
     Project project = getById(projectParam.getId());
-    Utils.requireNotNull(project);
+    AssertUtils.notNull(project);
     ApiAlertException.throwIfFalse(
         project.getTeamId().equals(projectParam.getTeamId()),
         "TeamId can't be changed, update project failed.");
     ApiAlertException.throwIfFalse(
         !project.getBuildState().equals(BuildStateEnum.BUILDING.get()),
         "The project is being built, update project failed.");
-    project.setName(projectParam.getName());
-    project.setUrl(projectParam.getUrl());
-    project.setBranches(projectParam.getBranches());
-    project.setPrvkeyPath(projectParam.getPrvkeyPath());
-    project.setUserName(projectParam.getUserName());
-    project.setPassword(projectParam.getPassword());
-    project.setPom(projectParam.getPom());
-    project.setDescription(projectParam.getDescription());
-    project.setBuildArgs(projectParam.getBuildArgs());
+    updateInternal(projectParam, project);
+    if (project.isHttpRepositoryUrl()) {
+      if (StringUtils.isBlank(projectParam.getUserName())) {
+        project.setUserName(null);
+        project.setPassword(null);
+        project.setSalt(null);
+      } else {
+        project.setUserName(projectParam.getUserName());
+        if (!Objects.equals(projectParam.getPassword(), project.getPassword())) {
+          try {
+            String salt = ShaHashUtils.getRandomSalt();
+            String encrypt = EncryptUtils.encrypt(projectParam.getPassword(), salt);
+            project.setPassword(encrypt);
+            project.setSalt(salt);
+          } catch (Exception e) {
+            log.error("The project github/gitlab password encrypt failed");
+            throw new ApiAlertException(e);
+          }
+        }
+      }
+    }
     if (project.isSshRepositoryUrl()) {
       project.setUserName(null);
     } else {
@@ -146,10 +176,22 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
     return true;
   }
 
+  private static void updateInternal(Project projectParam, Project project) {
+    project.setName(projectParam.getName());
+    project.setUrl(projectParam.getUrl());
+    project.setBranches(projectParam.getBranches());
+    project.setPrvkeyPath(projectParam.getPrvkeyPath());
+    project.setUserName(projectParam.getUserName());
+    project.setPassword(projectParam.getPassword());
+    project.setPom(projectParam.getPom());
+    project.setDescription(projectParam.getDescription());
+    project.setBuildArgs(projectParam.getBuildArgs());
+  }
+
   @Override
   public boolean removeById(Long id) {
     Project project = getById(id);
-    Utils.requireNotNull(project);
+    AssertUtils.notNull(project);
     LambdaQueryWrapper<Application> queryWrapper =
         new LambdaQueryWrapper<Application>().eq(Application::getProjectId, id);
     long count = applicationManageService.count(queryWrapper);
@@ -221,7 +263,7 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
   @Override
   public List<String> listModules(Long id) {
     Project project = getById(id);
-    Utils.requireNotNull(project);
+    AssertUtils.notNull(project);
 
     if (BuildStateEnum.SUCCESSFUL != BuildStateEnum.of(project.getBuildState())
         || !project.getDistHome().exists()) {
@@ -273,7 +315,9 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
       }
     }
     LambdaQueryWrapper<Project> queryWrapper =
-        new LambdaQueryWrapper<Project>().eq(Project::getName, project.getName());
+        new LambdaQueryWrapper<Project>()
+            .eq(Project::getName, project.getName())
+            .eq(Project::getTeamId, project.getTeamId());
     return this.baseMapper.selectCount(queryWrapper) > 0;
   }
 
@@ -287,7 +331,7 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
       }
       List<Map<String, Object>> confList = new ArrayList<>();
       File[] files = unzipFile.listFiles(x -> "conf".equals(x.getName()));
-      Utils.requireNotNull(files);
+      AssertUtils.notNull(files);
       for (File item : files) {
         eachFile(item, confList, true);
       }
@@ -371,5 +415,37 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
 
   private String getBuildLogPath(Long projectId) {
     return String.format("%s/%s/build.log", Workspace.PROJECT_BUILD_LOG_PATH(), projectId);
+  }
+
+  @Override
+  public List<String> getAllBranches(Project project) {
+    try {
+      return GitUtils.getBranchList(remakeProject(project));
+    } catch (Exception e) {
+      throw new ApiDetailException(e);
+    }
+  }
+
+  @Override
+  public GitAuthorizedErrorEnum gitCheck(Project project) {
+    try {
+      GitUtils.getBranchList(remakeProject(project));
+      return GitAuthorizedErrorEnum.SUCCESS;
+    } catch (Exception e) {
+      String err = e.getMessage();
+      if (err.contains("not authorized")) {
+        return GitAuthorizedErrorEnum.ERROR;
+      } else if (err.contains("Authentication is required")) {
+        return GitAuthorizedErrorEnum.REQUIRED;
+      }
+      return GitAuthorizedErrorEnum.UNKNOW;
+    }
+  }
+
+  private Project remakeProject(Project project) {
+    if (Objects.nonNull(project.getId())) {
+      return this.baseMapper.selectById(project.getId());
+    }
+    return project;
   }
 }

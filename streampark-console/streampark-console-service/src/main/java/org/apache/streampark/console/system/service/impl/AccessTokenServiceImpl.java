@@ -74,7 +74,9 @@ public class AccessTokenServiceImpl extends ServiceImpl<AccessTokenMapper, Acces
     accessToken.setUserId(user.getUserId());
     accessToken.setDescription(description);
     accessToken.setExpireTime(DateUtils.stringToDate(jwtToken.getExpireAt()));
-    accessToken.setCreateTime(new Date());
+    Date date = new Date();
+    accessToken.setCreateTime(date);
+    accessToken.setModifyTime(date);
     accessToken.setStatus(AccessToken.STATUS_ENABLE);
 
     this.save(accessToken);
@@ -114,10 +116,8 @@ public class AccessTokenServiceImpl extends ServiceImpl<AccessTokenMapper, Acces
             ? AccessToken.STATUS_DISABLE
             : AccessToken.STATUS_ENABLE;
 
-    AccessToken updateObj = new AccessToken();
-    updateObj.setStatus(status);
-    updateObj.setId(tokenId);
-    return RestResponse.success(this.updateById(updateObj));
+    tokenInfo.setStatus(status);
+    return RestResponse.success(this.updateById(tokenInfo));
   }
 
   @Override

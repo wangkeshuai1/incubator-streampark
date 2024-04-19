@@ -26,7 +26,7 @@ import org.apache.streampark.flink.packer.maven.Artifact;
 import org.apache.streampark.flink.packer.maven.DependencyInfo;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import lombok.Data;
+import lombok.Getter;
 import lombok.SneakyThrows;
 
 import java.io.File;
@@ -36,14 +36,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@Data
+@Getter
 public class Dependency {
   private List<MavenPom> pom = Collections.emptyList();
   private List<String> jar = Collections.emptyList();
 
   @SneakyThrows
   public static Dependency toDependency(String dependency) {
-    if (Utils.requireNotEmpty(dependency)) {
+    if (Utils.isNotEmpty(dependency)) {
       return JacksonUtils.read(dependency, new TypeReference<Dependency>() {});
     }
     return new Dependency();
