@@ -26,9 +26,9 @@ import org.apache.streampark.console.base.exception.ApiDetailException;
 import org.apache.streampark.console.core.bean.ResponseResult;
 import org.apache.streampark.console.core.entity.FlinkCluster;
 import org.apache.streampark.console.core.mapper.FlinkClusterMapper;
-import org.apache.streampark.console.core.service.CommonService;
 import org.apache.streampark.console.core.service.FlinkClusterService;
 import org.apache.streampark.console.core.service.FlinkEnvService;
+import org.apache.streampark.console.core.service.ServiceHelper;
 import org.apache.streampark.console.core.service.YarnQueueService;
 import org.apache.streampark.console.core.service.application.ApplicationInfoService;
 import org.apache.streampark.console.core.watcher.FlinkClusterWatcher;
@@ -82,7 +82,7 @@ public class FlinkClusterServiceImpl extends ServiceImpl<FlinkClusterMapper, Fli
 
   @Autowired private FlinkEnvService flinkEnvService;
 
-  @Autowired private CommonService commonService;
+  @Autowired private ServiceHelper serviceHelper;
 
   @Autowired private ApplicationInfoService applicationInfoService;
 
@@ -104,19 +104,19 @@ public class FlinkClusterServiceImpl extends ServiceImpl<FlinkClusterMapper, Fli
     ResponseResult result = new ResponseResult();
     result.setStatus(0);
 
-    // 1) Check name is already exists
+    // 1) Check name if already exists
     Boolean existsByClusterName =
         this.existsByClusterName(cluster.getClusterName(), cluster.getId());
     if (existsByClusterName) {
-      result.setMsg("ClusterName is already exists, please check!");
+      result.setMsg("ClusterName already exists, please check!");
       result.setStatus(1);
       return result;
     }
 
-    // 2) Check target-cluster is already exists
+    // 2) Check target-cluster if already exists
     String clusterId = cluster.getClusterId();
     if (StringUtils.isNotBlank(clusterId) && this.existsByClusterId(clusterId, cluster.getId())) {
-      result.setMsg("The clusterId " + clusterId + " is already exists,please check!");
+      result.setMsg("The clusterId " + clusterId + " already exists,please check!");
       result.setStatus(2);
       return result;
     }
@@ -142,7 +142,7 @@ public class FlinkClusterServiceImpl extends ServiceImpl<FlinkClusterMapper, Fli
 
   @Override
   public Boolean create(FlinkCluster flinkCluster) {
-    flinkCluster.setUserId(commonService.getUserId());
+    flinkCluster.setUserId(serviceHelper.getUserId());
     return internalCreate(flinkCluster);
   }
 

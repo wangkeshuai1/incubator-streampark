@@ -15,23 +15,16 @@
  * limitations under the License.
  */
 
-package org.apache.streampark.console.core.annotation;
+package org.apache.streampark.console.core.service.impl;
 
-import org.apache.streampark.console.core.enums.PermissionTypeEnum;
+import org.apache.streampark.console.core.service.DockerImageService;
+import org.apache.streampark.flink.packer.docker.DockerImageExist;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+public class DockerImageServiceImpl implements DockerImageService {
 
-/**
- * In the controller({@link org.apache.streampark.console.core.controller}), If the method contains
- * this annotation, it means that this method requires certain permissions to be called.
- */
-@Target(ElementType.METHOD)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface PermissionAction {
-  String id();
-
-  PermissionTypeEnum type();
+  @Override
+  public Boolean isDockerImageExist(String imageName) {
+    DockerImageExist dockerImageExist = new DockerImageExist();
+    return dockerImageExist.doesDockerImageExist(imageName);
+  }
 }

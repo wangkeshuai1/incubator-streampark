@@ -15,26 +15,15 @@
  * limitations under the License.
  */
 
-package org.apache.streampark.console.core.enums;
+package org.apache.streampark.console.core.service;
 
-import java.util.Arrays;
+public interface DockerImageService {
 
-public enum PermissionTypeEnum {
-  USER(1),
-  TEAM(2),
-  APP(3);
-
-  private final int value;
-
-  public int get() {
-    return this.value;
-  }
-
-  PermissionTypeEnum(int value) {
-    this.value = value;
-  }
-
-  public static PermissionTypeEnum of(Integer value) {
-    return Arrays.stream(values()).filter((x) -> x.value == value).findFirst().orElse(null);
-  }
+  /**
+   * Check the validity of the Docker image
+   *
+   * @param imageName
+   * @return
+   */
+  Boolean isDockerImageExist(String imageName);
 }

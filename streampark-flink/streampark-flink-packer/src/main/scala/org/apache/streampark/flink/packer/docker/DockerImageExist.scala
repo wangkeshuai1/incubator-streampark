@@ -15,19 +15,20 @@
  * limitations under the License.
  */
 
-package org.apache.streampark.console.base.properties;
+package org.apache.streampark.flink.packer.docker
 
-import lombok.Data;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
+import com.github.dockerjava.api.exception.NotFoundException
 
-@Data
-@Configuration
-@ConfigurationProperties(prefix = "streampark.shiro")
-public class ShiroProperties {
-
-  private String anonUrl;
-
-  /** token default effective time: 1d */
-  private Long jwtTimeOut = 86400L;
+class DockerImageExist {
+  def doesDockerImageExist(imageName: String): Boolean = {
+    usingDockerClient {
+      dockerClient =>
+        try {
+          dockerClient.inspectImageCmd(imageName).exec()
+          true
+        } catch {
+          case _: NotFoundException => false
+        }
+    }(err => throw new Exception(s"Check docker image failed, imageName=$imageName", err))
+  }
 }
