@@ -132,7 +132,7 @@ APP_BASE="$APP_HOME"
 APP_CONF="$APP_BASE"/conf
 APP_LIB="$APP_BASE"/lib
 APP_LOG="$APP_BASE"/logs
-APP_PID="$APP_BASE"/streampark.pid
+APP_PID="$APP_BASE"/.pid
 APP_OUT="$APP_LOG"/streampark.out
 # shellcheck disable=SC2034
 APP_TMPDIR="$APP_BASE"/temp
@@ -241,10 +241,16 @@ if [[ "$USE_NOHUP" = "true" ]]; then
   NOHUP="nohup"
 fi
 
+CONFIG="${APP_CONF}/config.yaml"
+# shellcheck disable=SC2006
+if [[ ! -f "$CONFIG" ]] ; then
+  echo_r "can not found config.yaml in \"conf\" directory, please check."
+  exit 1;
+fi
+
 BASH_UTIL="org.apache.streampark.console.base.util.BashJavaUtils"
-
 APP_MAIN="org.apache.streampark.console.StreamParkConsoleBootstrap"
-
+SERVER_PORT=$($JAVACMD -cp "$APP_LIB/*" $BASH_UTIL --get_yaml "server.port" "$CONFIG")
 JVM_OPTS_FILE=${APP_HOME}/bin/jvm_opts.sh
 
 JVM_ARGS=""
@@ -260,7 +266,6 @@ fi
 JVM_OPTS=${JVM_OPTS:-"${JVM_ARGS}"}
 JVM_OPTS="$JVM_OPTS -XX:HeapDumpPath=${APP_HOME}/logs/dump.hprof"
 JVM_OPTS="$JVM_OPTS -Xloggc:${APP_HOME}/logs/gc.log"
-DEBUG_OPTS=""
 
 # ----- Execute The Requested Command -----------------------------------------
 
@@ -276,21 +281,8 @@ print_logo() {
   printf '      %s   WebSite:  https://streampark.apache.org%s\n'                                  $BLUE   $RESET
   printf '      %s   GitHub :  http://github.com/apache/streampark%s\n\n'                          $BLUE   $RESET
   printf '      %s   ──────── Apache StreamPark, Make stream processing easier ô~ô!%s\n\n'         $PRIMARY  $RESET
-}
-
-init_env() {
-  # shellcheck disable=SC2006
-  CONFIG="${APP_CONF}/application.yml"
-  if [[ -f "$CONFIG" ]] ; then
-    echo_y """[WARN] in the \"conf\" directory, found the \"application.yml\" file. The \"application.yml\" file is deprecated.
-       For compatibility, this application.yml will be used preferentially. The latest configuration file is \"config.yaml\". It is recommended to use \"config.yaml\".
-       Note: \"application.yml\" will be completely deprecated in version 2.2.0. """
-  else
-    CONFIG="${APP_CONF}/config.yaml"
-    if [[ ! -f "$CONFIG" ]] ; then
-      echo_r "can not found config.yaml in \"conf\" directory, please check."
-      exit 1;
-    fi
+  if [[ "$1"x == "start"x ]]; then
+    printf '      %s                   http://localhost:%s %s\n\n'                                 $PRIMARY $SERVER_PORT   $RESET
   fi
 }
 
@@ -313,19 +305,19 @@ get_pid() {
   fi
 
   # shellcheck disable=SC2006
-  local serverPort=`$_RUNJAVA -cp "$APP_LIB/*" $BASH_UTIL --get_yaml "server.port" "$CONFIG"`
-  if [[ x"${serverPort}" == x"" ]]; then
+  if [[ "${SERVER_PORT}"x == ""x ]]; then
     echo_r "server.port is required, please check $CONFIG"
     exit 1;
   else
      # shellcheck disable=SC2006
       # shellcheck disable=SC2155
-      local used=`$_RUNJAVA -cp "$APP_LIB/*" $BASH_UTIL --check_port "$serverPort"`
-      if [[ x"${used}" == x"used" ]]; then
+      local used=`$JAVACMD -cp "$APP_LIB/*" $BASH_UTIL --check_port "$SERVER_PORT"`
+      if [[ "${used}"x == "used"x ]]; then
         # shellcheck disable=SC2006
         local PID=`jps -l | grep "$APP_MAIN" | awk '{print $1}'`
+        # shellcheck disable=SC2236
         if [[ ! -z $PID ]]; then
-          echo $PID
+          echo "$PID"
         else
           echo 0
         fi
@@ -350,16 +342,12 @@ start() {
   if [[ ${have_tty} -eq 1 ]]; then
     echo_w "Using APP_BASE:   $APP_BASE"
     echo_w "Using APP_HOME:   $APP_HOME"
-    if [[ "$1" = "debug" ]] ; then
-      echo_w "Using JAVA_HOME:   $JAVA_HOME"
-    else
-      echo_w "Using JRE_HOME:   $JRE_HOME"
-    fi
     echo_w "Using APP_PID:   $APP_PID"
+    echo_w "Using JAVA_HOME:   $JAVA_HOME"
   fi
 
    # shellcheck disable=SC2006
-   local workspace=`$_RUNJAVA -cp "$APP_LIB/*" $BASH_UTIL --get_yaml "streampark.workspace.local" "$CONFIG"`
+   local workspace=`$JAVACMD -cp "$APP_LIB/*" $BASH_UTIL --get_yaml "streampark.workspace.local" "$CONFIG"`
    if [[ ! -d $workspace ]]; then
      echo_r "ERROR: streampark.workspace.local: \"$workspace\" is invalid path, Please reconfigure in $CONFIG"
      echo_r "NOTE: \"streampark.workspace.local\" Do not set under APP_HOME($APP_HOME). Set it to a secure directory outside of APP_HOME.  "
@@ -402,16 +390,16 @@ start() {
   # shellcheck disable=SC2034
   # shellcheck disable=SC2006
   # shellcheck disable=SC2155
-  local JAVA_OPTS="$JVM_OPTS $DEBUG_OPTS"
+  local JAVA_OPTS="$JVM_OPTS"
 
   echo_g "JAVA_OPTS:  ${JAVA_OPTS}"
 
-  eval $NOHUP $_RUNJAVA $JAVA_OPTS \
+  eval $NOHUP $JAVACMD $JAVA_OPTS \
     -classpath "$APP_CLASSPATH" \
     -Dapp.home="${APP_HOME}" \
     -Dlogging.config="${APP_CONF}/logback-spring.xml" \
     -Djava.io.tmpdir="$APP_TMPDIR" \
-    $APP_MAIN >> "$APP_OUT" 2>&1 "&"
+    $APP_MAIN "$@" >> "$APP_OUT" 2>&1 "&"
 
     local PID=$!
     local IS_NUMBER="^[0-9]+$"
@@ -433,12 +421,8 @@ start_docker() {
   if [[ ${have_tty} -eq 1 ]]; then
     echo_w "Using APP_BASE:   $APP_BASE"
     echo_w "Using APP_HOME:   $APP_HOME"
-    if [[ "$1" = "debug" ]] ; then
-      echo_w "Using JAVA_HOME:   $JAVA_HOME"
-    else
-      echo_w "Using JRE_HOME:   $JRE_HOME"
-    fi
     echo_w "Using APP_PID:   $APP_PID"
+    echo_w "Using JAVA_HOME:   $JAVA_HOME"
   fi
 
   if [[ "${HADOOP_HOME}"x == ""x ]]; then
@@ -468,31 +452,17 @@ start_docker() {
     APP_CLASSPATH+=":${HADOOP_HOME}/etc/hadoop"
   fi
 
-  JVM_OPTS="${JVM_OPTS} -XX:-UseContainerSupport"
-
-  local JAVA_OPTS="$JVM_OPTS $DEBUG_OPTS"
+  JAVA_OPTS="${JVM_OPTS} -XX:-UseContainerSupport"
 
   echo_g "JAVA_OPTS:  ${JAVA_OPTS}"
 
-  $_RUNJAVA $JAVA_OPTS \
+  $JAVACMD $JAVA_OPTS \
     -classpath "$APP_CLASSPATH" \
     -Dapp.home="${APP_HOME}" \
     -Dlogging.config="${APP_CONF}/logback-spring.xml" \
     -Djava.io.tmpdir="$APP_TMPDIR" \
     $APP_MAIN
 
-}
-
-debug() {
-  # shellcheck disable=SC2236
-  if [[ ! -n "$DEBUG_PORT" ]]; then
-    echo_r "If start with debug mode,Please fill in the debug port like: bash streampark.sh debug 10002 "
-  else
-    DEBUG_OPTS="""
-    -Xdebug  -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=$DEBUG_PORT
-    """
-    start
-  fi
 }
 
 # shellcheck disable=SC2120
@@ -565,27 +535,27 @@ restart() {
 }
 
 main() {
-  print_logo
-  init_env
   case "$1" in
-    "debug")
-        DEBUG_PORT=$2
-        debug
-        ;;
     "start")
-        start
+        shift
+        start "$@"
+        [[ $? -eq 0 ]] && print_logo "start"
         ;;
     "start_docker")
+        print_logo
         start_docker
         ;;
     "stop")
+        print_logo
         stop
         ;;
     "status")
+        print_logo
         status
         ;;
     "restart")
         restart
+        [[ $? -eq 0 ]] && print_logo "start"
         ;;
     *)
         echo_r "Unknown command: $1"
@@ -595,7 +565,6 @@ main() {
         echo_w "  stop                      Stop StreamPark, wait up to 3 seconds and then use kill -KILL if still running"
         echo_w "  start_docker              start in docker or k8s mode"
         echo_w "  status                    StreamPark status"
-        echo_w "  debug                     StreamPark start with debug mode,start debug mode, like: bash streampark.sh debug 10002"
         echo_w "  restart \$conf            restart StreamPark with application config."
         exit 0
         ;;

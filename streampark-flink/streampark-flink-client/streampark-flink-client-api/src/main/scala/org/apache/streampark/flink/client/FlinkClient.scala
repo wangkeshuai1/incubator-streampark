@@ -24,7 +24,6 @@ import org.apache.streampark.flink.proxy.FlinkShimsProxy
 
 import java.security.Permission
 
-import scala.language.{implicitConversions, reflectiveCalls}
 import scala.reflect.ClassTag
 
 object FlinkClient extends Logger {
@@ -52,6 +51,8 @@ object FlinkClient extends Logger {
     try {
       System.setSecurityManager(new ExitSecurityManager())
       proxy[SubmitResponse](submitRequest, submitRequest.flinkVersion, SUBMIT_REQUEST)
+    } catch {
+      case e: Exception => throw e
     } finally {
       System.setSecurityManager(securityManager)
     }
@@ -86,12 +87,12 @@ object FlinkClient extends Logger {
         val method = submitClass.getDeclaredMethod(requestBody._2, requestClass)
         method.setAccessible(true)
         val obj = method.invoke(null, FlinkShimsProxy.getObject(classLoader, request))
-        if (obj == null) null.asInstanceOf[T]
-        else {
+        if (obj == null) {
+          null.asInstanceOf[T]
+        } else {
           FlinkShimsProxy.getObject[T](this.getClass.getClassLoader, obj)
         }
-      }
-    )
+      })
   }
 
 }

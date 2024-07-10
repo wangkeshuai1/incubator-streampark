@@ -26,7 +26,6 @@ import org.apache.commons.lang3.StringUtils
 import org.apache.spark.sql.DataFrame
 
 import scala.collection.mutable.ArrayBuffer
-import scala.language.implicitConversions
 import scala.util.{Failure, Success, Try}
 
 object SqlClient extends App {
@@ -45,7 +44,8 @@ object SqlClient extends App {
     }
   }
 
-  private[this] val sets = SqlCommandParser.parseSQL(sparkSql).filter(_.command == SqlCommand.SET)
+  private[this] val sets =
+    SqlCommandParser.parseSQL(sparkSql).filter(_.command == SqlCommand.SET)
 
   private[this] val defaultMode = "BATCH"
 

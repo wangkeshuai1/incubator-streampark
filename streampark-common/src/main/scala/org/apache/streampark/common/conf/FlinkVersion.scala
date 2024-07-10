@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.streampark.common.conf
 
 import org.apache.streampark.common.util.{CommandUtils, Logger}
@@ -79,8 +80,7 @@ class FlinkVersion(val flinkHome: String) extends java.io.Serializable with Logg
             flinkVersion.set(matcher.group(1))
           }
         }
-      }
-    )
+      })
     logInfo(buffer.toString())
     if (!success.get()) {
       throw new IllegalStateException(s"[StreamPark] parse flink version failed. $buffer")
@@ -133,7 +133,7 @@ class FlinkVersion(val flinkHome: String) extends java.io.Serializable with Logg
   }
 
   // StreamPark flink shims version, like "streampark-flink-shims_flink-1.13"
-  lazy val shimsVersion: String = s"streampark-flink-shims_flink-$majorVersion"
+  private lazy val shimsVersion: String = s"streampark-flink-shims_flink-$majorVersion"
 
   override def toString: String =
     s"""
