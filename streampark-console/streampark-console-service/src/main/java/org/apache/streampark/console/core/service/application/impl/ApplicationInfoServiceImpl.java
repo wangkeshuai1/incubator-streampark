@@ -41,7 +41,7 @@ import org.apache.streampark.console.core.metrics.flink.JobsOverview;
 import org.apache.streampark.console.core.runner.EnvInitializer;
 import org.apache.streampark.console.core.service.FlinkClusterService;
 import org.apache.streampark.console.core.service.FlinkEnvService;
-import org.apache.streampark.console.core.service.SavePointService;
+import org.apache.streampark.console.core.service.SavepointService;
 import org.apache.streampark.console.core.service.application.ApplicationInfoService;
 import org.apache.streampark.console.core.watcher.FlinkAppHttpWatcher;
 import org.apache.streampark.console.core.watcher.FlinkClusterWatcher;
@@ -102,7 +102,7 @@ public class ApplicationInfoServiceImpl extends ServiceImpl<ApplicationMapper, A
     private FlinkEnvService flinkEnvService;
 
     @Autowired
-    private SavePointService savePointService;
+    private SavepointService savepointService;
 
     @Autowired
     private EnvInitializer envInitializer;
@@ -222,12 +222,7 @@ public class ApplicationInfoServiceImpl extends ServiceImpl<ApplicationMapper, A
     public boolean checkEnv(Application appParam) throws ApplicationException {
         Application application = getById(appParam.getId());
         try {
-            FlinkEnv flinkEnv;
-            if (application.getVersionId() != null) {
-                flinkEnv = flinkEnvService.getByIdOrDefault(application.getVersionId());
-            } else {
-                flinkEnv = flinkEnvService.getDefault();
-            }
+            FlinkEnv flinkEnv = flinkEnvService.getByIdOrDefault(application.getVersionId());
             if (flinkEnv == null) {
                 return false;
             }
@@ -346,7 +341,6 @@ public class ApplicationInfoServiceImpl extends ServiceImpl<ApplicationMapper, A
             .sorted(Comparator.comparingLong(File::lastModified).reversed())
             .map(File::getName)
             .filter(fn -> fn.endsWith(Constant.JAR_SUFFIX))
-            .limit(DEFAULT_HISTORY_RECORD_LIMIT)
             .collect(Collectors.toList());
     }
 
@@ -500,9 +494,9 @@ public class ApplicationInfoServiceImpl extends ServiceImpl<ApplicationMapper, A
 
     @Override
     public String checkSavepointPath(Application appParam) throws Exception {
-        String savepointPath = appParam.getSavePoint();
+        String savepointPath = appParam.getSavepointPath();
         if (StringUtils.isBlank(savepointPath)) {
-            savepointPath = savePointService.getSavePointPath(appParam);
+            savepointPath = savepointService.getSavePointPath(appParam);
         }
 
         if (StringUtils.isNotBlank(savepointPath)) {
