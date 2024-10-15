@@ -41,7 +41,7 @@ export function fetchCreateSparkApp(data: SparkApplication) {
  * @param params get parameters
  */
 export function fetchCopySparkApp(data: SparkApplication) {
-  return defHttp.post({ url: `${apiPrefix}/copy`, data });
+  return defHttp.post({ url: `${apiPrefix}/copy`, data }, { isTransformResponse: false });
 }
 /**
  * update spark application information
@@ -119,7 +119,7 @@ export function fetchSparkYarn() {
 /**
  * check spark name
  */
-export function fetchCheckSparkName(data: { id?: string; jobName: string }) {
+export function fetchCheckSparkName(data: { id?: string; appName: string }) {
   return defHttp.post<AppExistsStateEnum>({ url: `${apiPrefix}/check/name`, data });
 }
 
